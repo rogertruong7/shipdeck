@@ -51,12 +51,13 @@ describe('forceStopSchedule', () => {
   })
 
   it('classifies done with the PR URL when the log already contains one', () => {
-    const s = seed({ id: 'sch_bbbbbbbb' })
+    const s = seed({ id: 'sch_bbbbbbbb', sessionId: 'ses-fs-1' })
     writeFileSync(join(runsDir, `${s.id}.log`), 'pushed\nhttps://github.com/acme/repo-a/pull/12\n')
     forceStopSchedule(s.id)
     const record = JSON.parse(readFileSync(join(runsDir, `${s.id}.json`), 'utf8'))
     expect(record.status).toBe('done')
     expect(record.prUrl).toBe('https://github.com/acme/repo-a/pull/12')
+    expect(record.sessionId).toBe('ses-fs-1')
   })
 
   it('kills the recorded detached process group', async () => {

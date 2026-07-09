@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it } from 'vitest'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
-import { chmodSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -108,4 +108,22 @@ describe('tick', () => {
     expect(rec.status).toBe('done')
     expect(rec.prUrl).toContain('/pull/9')
   }, 10000)
+
+  it('reconciles an orphaned running schedule from its log instead of waiting for the stale sweep', async () => {
+    const orphan = sch({
+      id: 'sch_orphan', status: 'running', startedAt: new Date().toISOString(),
+      pid: 999999, sessionId: 'ses-orphan-1',
+    })
+    seed([orphan])
+    mkdirSync(join(stateDir, 'runs'), { recursive: true })
+    writeFileSync(join(stateDir, 'runs', 'sch_orphan.log'), 'pushed\nhttps://github.com/a/b/pull/3\n')
+    const { tick } = await import('../src/agent/agent')
+    await tick(new Date())
+    const rec = JSON.parse(readFileSync(join(stateDir, 'runs', 'sch_orphan.json'), 'utf8'))
+    expect(rec.status).toBe('done')
+    expect(rec.prUrl).toContain('/pull/3')
+    expect(rec.sessionId).toBe('ses-orphan-1')
+    const left = JSON.parse(readFileSync(join(stateDir, 'schedules.json'), 'utf8')) as Schedule[]
+    expect(left.find(s => s.id === 'sch_orphan')).toBeUndefined()
+  })
 })

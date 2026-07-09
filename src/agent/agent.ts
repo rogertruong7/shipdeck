@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from '
 import { join } from 'node:path'
 import { AGENT_LOCK, AGENT_LOG, CONFIG_FILE, RUNS_DIR, SCHEDULES_FILE, STATE_DIR } from '../shared/paths'
 import { appendLog, readJson, writeJsonAtomic } from '../shared/state-files'
-import { selectDue, staleRunning } from '../shared/schedule-logic'
+import { classifyInterrupted, selectDue, staleRunning } from '../shared/schedule-logic'
 import { DEFAULT_CONFIG, type Schedule, type ShipdeckConfig } from '../shared/types'
 import { executeSchedule, notify } from './runner'
 
@@ -42,14 +42,45 @@ function writeFailedRecordIfMissing(s: Schedule, now: Date): void {
   writeJsonAtomic(recordPath, {
     scheduleId: s.id, worktreePath: s.worktreePath, repo: s.repo, branch: s.branch, args: s.args,
     scheduledFor: s.fireAt, startedAt: s.startedAt ?? s.fireAt, finishedAt: now.toISOString(),
-    exitCode: null, status: 'failed', lateBySeconds: 0,
+    exitCode: null, status: 'failed', lateBySeconds: 0, ...(s.sessionId ? { sessionId: s.sessionId } : {}),
   })
+}
+
+// A 'running' schedule whose recorded pid is dead and that has no run record
+// was orphaned (its agent process died mid-run). Classify it from the log now
+// instead of letting it sit "Running…" until the 2h stale sweep calls it failed.
+function reconcileOrphans(now: Date): void {
+  const orphaned = readJson<Schedule[]>(SCHEDULES_FILE, []).filter(s => s.status === 'running' && s.pid !== undefined && !pidAlive(s.pid))
+  if (orphaned.length === 0) return
+  for (const s of orphaned) {
+    const recordPath = join(RUNS_DIR, `${s.id}.json`)
+    if (!existsSync(recordPath)) {
+      let logText = ''
+      try {
+        logText = readFileSync(join(RUNS_DIR, `${s.id}.log`), 'utf8')
+      } catch {
+        // no log — claude never produced output
+      }
+      const { status, prUrl } = classifyInterrupted(logText)
+      writeJsonAtomic(recordPath, {
+        scheduleId: s.id, worktreePath: s.worktreePath, repo: s.repo, branch: s.branch, args: s.args,
+        scheduledFor: s.fireAt, startedAt: s.startedAt ?? s.fireAt, finishedAt: now.toISOString(),
+        exitCode: null, status, lateBySeconds: 0,
+        ...(prUrl ? { prUrl } : {}), ...(s.sessionId ? { sessionId: s.sessionId } : {}),
+      })
+    }
+    appendLog(AGENT_LOG, `reconciled orphaned run ${s.id}`)
+  }
+  const ids = new Set(orphaned.map(s => s.id))
+  mutateSchedules(list => list.filter(x => !ids.has(x.id)))
 }
 
 export async function tick(now = new Date()): Promise<void> {
   mkdirSync(RUNS_DIR, { recursive: true })
   appendLog(AGENT_LOG, 'tick')
   const config: ShipdeckConfig = { ...DEFAULT_CONFIG, ...readJson<Partial<ShipdeckConfig>>(CONFIG_FILE, {}) }
+
+  reconcileOrphans(now)
 
   const stale = staleRunning(readJson<Schedule[]>(SCHEDULES_FILE, []), now)
   if (stale.length > 0) {
@@ -78,6 +109,8 @@ export async function tick(now = new Date()): Promise<void> {
         now: () => new Date(),
         // persist the claude pid so the app's force-stop can kill the process group
         onSpawn: pid => mutateSchedules(s => s.map(x => (x.id === due.id ? { ...x, pid } : x))),
+        // persist the session id so interrupted runs stay resumable
+        onSession: sessionId => mutateSchedules(s => s.map(x => (x.id === due.id ? { ...x, sessionId } : x))),
       })
       writeJsonAtomic(join(RUNS_DIR, `${due.id}.json`), record)
       mutateSchedules(s => s.filter(x => x.id !== due.id))

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { armReplacing, lateBySeconds, selectDue, staleRunning } from '../src/shared/schedule-logic'
+import { armReplacing, classifyInterrupted, lateBySeconds, selectDue, staleRunning } from '../src/shared/schedule-logic'
 import type { Schedule } from '../src/shared/types'
 
 function sch(over: Partial<Schedule>): Schedule {
@@ -39,6 +39,20 @@ describe('lateBySeconds', () => {
   it('is 0 when on time and positive when late', () => {
     expect(lateBySeconds('2026-07-08T17:30:00.000Z', new Date('2026-07-08T17:30:20.000Z'))).toBe(20)
     expect(lateBySeconds('2026-07-08T17:30:00.000Z', new Date('2026-07-08T17:29:00.000Z'))).toBe(0)
+  })
+})
+
+describe('classifyInterrupted', () => {
+  it('is done with the URL when the log contains a PR link', () => {
+    expect(classifyInterrupted('pushed\nhttps://github.com/a/b/pull/12\ndone')).toEqual({
+      status: 'done',
+      prUrl: 'https://github.com/a/b/pull/12',
+    })
+  })
+
+  it('is needs_attention when no PR link appears', () => {
+    expect(classifyInterrupted('working on it…')).toEqual({ status: 'needs_attention' })
+    expect(classifyInterrupted('')).toEqual({ status: 'needs_attention' })
   })
 })
 

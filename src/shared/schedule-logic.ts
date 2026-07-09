@@ -16,6 +16,13 @@ export function lateBySeconds(scheduledFor: string, startedAt: Date): number {
   return Math.max(0, Math.round((startedAt.getTime() - Date.parse(scheduledFor)) / 1000))
 }
 
+// Best-effort classification for a run that ended without an exit code
+// (force-stopped, or its agent died): the log is all we have.
+export function classifyInterrupted(logText: string): { status: 'done' | 'needs_attention'; prUrl?: string } {
+  const prUrl = logText.match(PR_URL_RE)?.[0]
+  return prUrl ? { status: 'done', prUrl } : { status: 'needs_attention' }
+}
+
 const STALE_MS = 2 * 60 * 60 * 1000
 
 export function staleRunning(schedules: Schedule[], now: Date): Schedule[] {

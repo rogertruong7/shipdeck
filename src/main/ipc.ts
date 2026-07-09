@@ -1,4 +1,5 @@
 import { clipboard, dialog, ipcMain } from 'electron'
+import { execFile } from 'node:child_process'
 import { readFile, readdir } from 'node:fs/promises'
 import { appendFileSync, mkdirSync } from 'node:fs'
 import { join } from 'node:path'
@@ -8,7 +9,7 @@ import { groupWorktrees } from '../shared/grouping'
 import { markdownToSlackHtml } from '../shared/slack-format'
 import type { RunRecord, Schedule, ShipdeckConfig } from '../shared/types'
 import { branchFiles, fileDiff, scanWorktrees } from './scanner'
-import { armSchedule, cancelSchedule, forceStopSchedule, runNow, type ArmInput, type RunNowInput } from './schedules'
+import { armSchedule, cancelSchedule, forceStopSchedule, resumeRun, runNow, type ArmInput, type ResumeInput, type RunNowInput } from './schedules'
 import { agentHealth, installAgent } from './agent-installer'
 import { loadConfig, saveConfig } from './config'
 import { enableWakeArming } from './wake-setup'
@@ -37,6 +38,16 @@ export function registerIpc(): void {
   ipcMain.handle('schedules:cancel', (_e, id: string) => cancelSchedule(id, loadConfig()))
   ipcMain.handle('schedules:runNow', (_e, input: RunNowInput) => runNow(input))
   ipcMain.handle('schedules:forceStop', (_e, id: string) => forceStopSchedule(id))
+  ipcMain.handle('runs:resume', (_e, input: ResumeInput) => resumeRun(input))
+  ipcMain.handle('runs:openTerminal', (_e, worktreePath: string, sessionId: string) => {
+    if (!/^[0-9a-zA-Z-]{8,}$/.test(sessionId)) return
+    const c = loadConfig()
+    const bin = c.claudePath === 'auto' ? 'claude' : c.claudePath
+    const shq = (s: string) => `'${s.replace(/'/g, `'\\''`)}'`
+    const cmd = `cd ${shq(worktreePath)} && ${shq(bin)} --resume ${sessionId}`
+    const script = `tell application "Terminal"\nactivate\ndo script "${cmd.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"\nend tell`
+    execFile('osascript', ['-e', script], () => {})
+  })
   ipcMain.handle('runs:list', async (): Promise<RunRecord[]> => {
     let names: string[] = []
     try {

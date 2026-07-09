@@ -57,6 +57,23 @@ export function RunsDrawer({ runs, schedules, onClose, onSchedulesChange }: { ru
         <button className="link" onClick={() => toggleLog(r.scheduleId)}>
           {openLog === r.scheduleId ? 'Hide log' : 'Show log'}
         </button>
+        {r.sessionId && (r.status === 'failed' || r.status === 'needs_attention') && (
+          <button
+            className="link"
+            onClick={() =>
+              void api
+                .resumeRun({ worktreePath: r.worktreePath, repo: r.repo, branch: r.branch, args: r.args, sessionId: r.sessionId! })
+                .then(onSchedulesChange)
+            }
+          >
+            Resume run
+          </button>
+        )}
+        {r.sessionId && !isSummary && (
+          <button className="link" onClick={() => void api.openRunTerminal(r.worktreePath, r.sessionId!)}>
+            Open in Terminal
+          </button>
+        )}
       </div>
       {openLog === r.scheduleId && <pre className="runlog">{log || '(empty)'}</pre>}
     </li>

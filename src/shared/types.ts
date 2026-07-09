@@ -37,6 +37,9 @@ export interface Schedule {
   createdAt: string
   startedAt?: string
   pid?: number
+  sessionId?: string
+  // set on schedules created by "Resume run": claude restarts from this session
+  resumeSessionId?: string
 }
 
 export type RunStatus = 'done' | 'failed' | 'needs_attention' | 'skipped_clean'
@@ -54,6 +57,7 @@ export interface RunRecord {
   status: RunStatus
   lateBySeconds: number
   prUrl?: string
+  sessionId?: string
 }
 
 export interface FileDiffStat {

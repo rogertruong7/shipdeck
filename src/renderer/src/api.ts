@@ -30,6 +30,8 @@ export interface ShipdeckApi {
   cancelSchedule(id: string): Promise<Schedule[]>
   runNow(input: RunNowInput): Promise<Schedule[]>
   forceStopSchedule(id: string): Promise<Schedule[]>
+  resumeRun(input: RunNowInput & { sessionId: string }): Promise<Schedule[]>
+  openRunTerminal(worktreePath: string, sessionId: string): Promise<void>
   listRuns(): Promise<RunRecord[]>
   readRunLog(id: string): Promise<string>
   agentHealth(): Promise<AgentHealth>

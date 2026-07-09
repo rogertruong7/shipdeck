@@ -6,7 +6,7 @@ import { join } from 'node:path'
 const stateDir = mkdtempSync(join(tmpdir(), 'shipdeck-runnow-'))
 process.env.SHIPDECK_STATE_DIR = stateDir
 
-const { runNow } = await import('../src/main/schedules')
+const { resumeRun, runNow } = await import('../src/main/schedules')
 import type { Schedule } from '../src/shared/types'
 
 describe('runNow', () => {
@@ -26,5 +26,15 @@ describe('runNow', () => {
     const out = await runNow({ worktreePath: '/w/a', repo: 'repo-a', branch: 'sam/x', args: 'v' })
     expect(out.filter(s => s.worktreePath === '/w/a')).toHaveLength(1)
     expect(out.find(s => s.worktreePath === '/w/a')?.args).toBe('v')
+  })
+})
+
+describe('resumeRun', () => {
+  it('arms an immediate schedule carrying the session to resume', async () => {
+    const out = await resumeRun({ worktreePath: '/w/r', repo: 'repo-a', branch: 'sam/x', args: '', sessionId: 'ses-1' })
+    const entry = out.find(s => s.worktreePath === '/w/r')
+    expect(entry?.status).toBe('armed')
+    expect(entry?.resumeSessionId).toBe('ses-1')
+    expect(Date.parse(entry!.fireAt)).toBeLessThanOrEqual(Date.now())
   })
 })

@@ -93,6 +93,28 @@ describe('executeSchedule', () => {
     expect(pid).toBeGreaterThan(0)
   })
 
+  it('captures the session id from stream-json output and records it', async () => {
+    const shimPath = await makeShim(
+      root,
+      'claude-session',
+      `echo '{"type":"system","subtype":"init","session_id":"ses-abc-123"}'; echo "https://github.com/acme/alpha/pull/9"`,
+    )
+    let seen = ''
+    const rec = await executeSchedule(sch(dirtyWt), { runsDir, config: cfg(shimPath), now: () => new Date(), onSession: id => (seen = id) })
+    expect(seen).toBe('ses-abc-123')
+    expect(rec.sessionId).toBe('ses-abc-123')
+  })
+
+  it('resumes with --resume and a continue prompt, bypassing the clean-worktree skip', async () => {
+    const shimPath = await makeShim(root, 'claude-resume', 'echo "args=$*"; echo "https://github.com/acme/alpha/pull/11"')
+    const s = sch(cleanWt, { resumeSessionId: 'ses-old-1' })
+    const rec = await executeSchedule(s, { runsDir, config: cfg(shimPath), now: () => new Date() })
+    expect(rec.status).toBe('done')
+    const log = readFileSync(join(runsDir, `${s.id}.log`), 'utf8')
+    expect(log).toContain('--resume ses-old-1')
+    expect(log).not.toContain('/split-commit-pr')
+  })
+
   it('records lateBySeconds from fireAt', async () => {
     const shimPath = await makeShim(root, 'claude-late', 'echo "https://github.com/x/y/pull/1"')
     const s = sch(dirtyWt, { fireAt: new Date(Date.now() - 10 * 60000).toISOString() })

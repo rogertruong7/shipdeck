@@ -5,7 +5,7 @@ import { appendFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { RUNS_DIR, SCHEDULES_FILE } from '../shared/paths'
 import { readJson, writeJsonAtomic } from '../shared/state-files'
-import { armReplacing, PR_URL_RE } from '../shared/schedule-logic'
+import { armReplacing, classifyInterrupted } from '../shared/schedule-logic'
 import type { RunRecord, Schedule, ShipdeckConfig } from '../shared/types'
 
 const exec = promisify(execFile)
@@ -78,12 +78,42 @@ export async function runNow(input: RunNowInput): Promise<Schedule[]> {
     createdAt: new Date().toISOString(),
   }
   writeJsonAtomic(SCHEDULES_FILE, armReplacing(schedules, next))
+  await kickstartAgent()
+  return readJson<Schedule[]>(SCHEDULES_FILE, [])
+}
+
+async function kickstartAgent(): Promise<void> {
   try {
     const uid = process.getuid?.() ?? 501
     await exec('launchctl', ['kickstart', `gui/${uid}/com.roger.shipdeck.agent`])
   } catch {
     // agent will still pick it up on its next 60s tick
   }
+}
+
+export interface ResumeInput {
+  worktreePath: string
+  repo: string
+  branch: string
+  args: string
+  sessionId: string
+}
+
+// Re-run an interrupted run by resuming its claude session through the normal
+// agent path. The new schedule fires immediately.
+export async function resumeRun(input: ResumeInput): Promise<Schedule[]> {
+  const { sessionId, ...rest } = input
+  const schedules = readJson<Schedule[]>(SCHEDULES_FILE, [])
+  const next: Schedule = {
+    id: `sch_${randomBytes(4).toString('hex')}`,
+    ...rest,
+    fireAt: new Date().toISOString(),
+    status: 'armed',
+    createdAt: new Date().toISOString(),
+    resumeSessionId: sessionId,
+  }
+  writeJsonAtomic(SCHEDULES_FILE, armReplacing(schedules, next))
+  await kickstartAgent()
   return readJson<Schedule[]>(SCHEDULES_FILE, [])
 }
 
@@ -120,7 +150,7 @@ export function forceStopSchedule(id: string, now = new Date()): Schedule[] {
   }
   const recordPath = join(RUNS_DIR, `${id}.json`)
   if (!existsSync(recordPath)) {
-    const prUrl = logText.match(PR_URL_RE)?.[0]
+    const { status, prUrl } = classifyInterrupted(logText)
     const record: RunRecord = {
       scheduleId: id,
       worktreePath: target.worktreePath,
@@ -131,9 +161,10 @@ export function forceStopSchedule(id: string, now = new Date()): Schedule[] {
       startedAt: target.startedAt ?? target.fireAt,
       finishedAt: now.toISOString(),
       exitCode: null,
-      status: prUrl ? 'done' : 'needs_attention',
+      status,
       lateBySeconds: 0,
       ...(prUrl ? { prUrl } : {}),
+      ...(target.sessionId ? { sessionId: target.sessionId } : {}),
     }
     writeJsonAtomic(recordPath, record)
   }
