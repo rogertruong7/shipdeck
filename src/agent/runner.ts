@@ -16,6 +16,9 @@ export interface RunnerCtx {
   // Reports the claude session id (from the first stream-json event) so
   // interrupted runs can be resumed.
   onSession?(sessionId: string): void
+  // Reports the PR URL the moment it appears mid-run (gh pr create's tool
+  // result or claude's own text), so the UI can link it before the run ends.
+  onPrUrl?(url: string): void
 }
 
 function isClean(wtPath: string): Promise<boolean> {
@@ -24,7 +27,11 @@ function isClean(wtPath: string): Promise<boolean> {
   })
 }
 
-function runClaude(s: Schedule, ctx: RunnerCtx, logPath: string): Promise<{ exitCode: number | null; output: string; sessionId?: string }> {
+function runClaude(
+  s: Schedule,
+  ctx: RunnerCtx,
+  logPath: string,
+): Promise<{ exitCode: number | null; output: string; sessionId?: string; prUrl?: string }> {
   return new Promise(resolve => {
     const bin = ctx.config.claudePath === 'auto' ? 'claude' : ctx.config.claudePath
     const prompt = s.resumeSessionId
@@ -58,9 +65,50 @@ function runClaude(s: Schedule, ctx: RunnerCtx, logPath: string): Promise<{ exit
         // not JSON — plain shim output
       }
     }
+    let prUrl: string | undefined
+    // Formatted lines (claude's own text / final result) match anywhere; raw
+    // tool results only count when a whole output line IS a PR URL — that's
+    // exactly what `gh pr create` prints, and it avoids grabbing unrelated PR
+    // links that tools like `gh pr list` might emit.
+    const capturePrUrl = (raw: string, formatted: string | null) => {
+      if (prUrl) return
+      let found = formatted?.match(PR_URL_RE)?.[0]
+      if (!found && raw.trimStart().startsWith('{')) {
+        try {
+          const ev = JSON.parse(raw) as { type?: string; message?: { content?: unknown } }
+          if (ev.type === 'user') {
+            const texts: string[] = []
+            const collect = (c: unknown): void => {
+              if (typeof c === 'string') texts.push(c)
+              else if (Array.isArray(c)) c.forEach(collect)
+              else if (c && typeof c === 'object') {
+                const o = c as { content?: unknown; text?: unknown }
+                if (typeof o.text === 'string') texts.push(o.text)
+                if (o.content !== undefined) collect(o.content)
+              }
+            }
+            collect(ev.message?.content)
+            for (const t of texts) {
+              found = t
+                .split('\n')
+                .map(l => l.trim())
+                .find(l => /^https:\/\/github\.com\/[^\s)]+\/pull\/\d+$/.test(l))
+              if (found) break
+            }
+          }
+        } catch {
+          // not JSON
+        }
+      }
+      if (found) {
+        prUrl = found
+        ctx.onPrUrl?.(found)
+      }
+    }
     const emitLine = (line: string) => {
       captureSession(line)
       const formatted = formatStreamEvent(line)
+      capturePrUrl(line, formatted)
       if (formatted === null) return
       output += `${formatted}\n`
       log.write(`${formatted}\n`)
@@ -96,14 +144,14 @@ function runClaude(s: Schedule, ctx: RunnerCtx, logPath: string): Promise<{ exit
       if (settled) return
       settled = true
       log.write(`spawn error: ${err.message}\n`)
-      log.end(() => resolve({ exitCode: null, output: `${output}\nspawn error: ${err.message}`, sessionId }))
+      log.end(() => resolve({ exitCode: null, output: `${output}\nspawn error: ${err.message}`, sessionId, prUrl }))
     })
     child.on('close', code => {
       clearTimeout(timer)
       if (settled) return
       settled = true
       if (pending) emitLine(pending)
-      log.end(() => resolve({ exitCode: code, output, sessionId }))
+      log.end(() => resolve({ exitCode: code, output, sessionId, prUrl }))
     })
   })
 }
@@ -125,8 +173,8 @@ export async function executeSchedule(s: Schedule, ctx: RunnerCtx): Promise<RunR
   if (!s.resumeSessionId && (await isClean(s.worktreePath))) {
     return { ...base, finishedAt: ctx.now().toISOString(), exitCode: null, status: 'skipped_clean' }
   }
-  const { exitCode, output, sessionId } = await runClaude(s, ctx, join(ctx.runsDir, `${s.id}.log`))
-  const prUrl = output.match(PR_URL_RE)?.[0]
+  const { exitCode, output, sessionId, prUrl: livePrUrl } = await runClaude(s, ctx, join(ctx.runsDir, `${s.id}.log`))
+  const prUrl = output.match(PR_URL_RE)?.[0] ?? livePrUrl
   const status = exitCode === 0 ? (prUrl ? 'done' : 'needs_attention') : 'failed'
   return { ...base, finishedAt: ctx.now().toISOString(), exitCode, status, ...(prUrl ? { prUrl } : {}), ...(sessionId ? { sessionId } : {}) }
 }

@@ -61,7 +61,9 @@ function reconcileOrphans(now: Date): void {
       } catch {
         // no log — claude never produced output
       }
-      const { status, prUrl } = classifyInterrupted(logText)
+      const fromLog = classifyInterrupted(logText)
+      const prUrl = fromLog.prUrl ?? s.prUrl
+      const status = prUrl ? ('done' as const) : fromLog.status
       writeJsonAtomic(recordPath, {
         scheduleId: s.id, worktreePath: s.worktreePath, repo: s.repo, branch: s.branch, args: s.args,
         scheduledFor: s.fireAt, startedAt: s.startedAt ?? s.fireAt, finishedAt: now.toISOString(),
@@ -111,6 +113,8 @@ export async function tick(now = new Date()): Promise<void> {
         onSpawn: pid => mutateSchedules(s => s.map(x => (x.id === due.id ? { ...x, pid } : x))),
         // persist the session id so interrupted runs stay resumable
         onSession: sessionId => mutateSchedules(s => s.map(x => (x.id === due.id ? { ...x, sessionId } : x))),
+        // persist the PR URL mid-run so the card can link it immediately
+        onPrUrl: url => mutateSchedules(s => s.map(x => (x.id === due.id ? { ...x, prUrl: url } : x))),
       })
       writeJsonAtomic(join(RUNS_DIR, `${due.id}.json`), record)
       mutateSchedules(s => s.filter(x => x.id !== due.id))

@@ -68,6 +68,14 @@ describe('forceStopSchedule', () => {
     expect(await waitForExit(child.pid!)).toBe(true)
   })
 
+  it('classifies done from the schedule prUrl when the log lacks the link', () => {
+    const s = seed({ id: 'sch_99999999', prUrl: 'https://github.com/acme/repo-a/pull/44' })
+    forceStopSchedule(s.id)
+    const record = JSON.parse(readFileSync(join(runsDir, `${s.id}.json`), 'utf8'))
+    expect(record.status).toBe('done')
+    expect(record.prUrl).toBe('https://github.com/acme/repo-a/pull/44')
+  })
+
   it('survives a pid that is already dead', () => {
     const s = seed({ id: 'sch_dddddddd', pid: 999999 })
     expect(() => forceStopSchedule(s.id)).not.toThrow()

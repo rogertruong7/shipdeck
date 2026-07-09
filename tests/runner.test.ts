@@ -115,6 +115,21 @@ describe('executeSchedule', () => {
     expect(log).not.toContain('/split-commit-pr')
   })
 
+  it('reports the PR URL live from a gh pr create tool result', async () => {
+    const toolResult = JSON.stringify({
+      type: 'user',
+      message: { content: [{ type: 'tool_result', content: 'https://github.com/acme/alpha/pull/21\n' }] },
+    })
+    const shimPath = await makeShim(root, 'claude-live-pr', `echo '${toolResult}'`)
+    let live = ''
+    const rec = await executeSchedule(sch(dirtyWt), { runsDir, config: cfg(shimPath), now: () => new Date(), onPrUrl: u => (live = u) })
+    expect(live).toBe('https://github.com/acme/alpha/pull/21')
+    // classification falls back to the live capture even though the formatted
+    // log (assistant text only) never contained the URL
+    expect(rec.status).toBe('done')
+    expect(rec.prUrl).toBe('https://github.com/acme/alpha/pull/21')
+  })
+
   it('records lateBySeconds from fireAt', async () => {
     const shimPath = await makeShim(root, 'claude-late', 'echo "https://github.com/x/y/pull/1"')
     const s = sch(dirtyWt, { fireAt: new Date(Date.now() - 10 * 60000).toISOString() })

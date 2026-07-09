@@ -150,7 +150,9 @@ export function forceStopSchedule(id: string, now = new Date()): Schedule[] {
   }
   const recordPath = join(RUNS_DIR, `${id}.json`)
   if (!existsSync(recordPath)) {
-    const { status, prUrl } = classifyInterrupted(logText)
+    const fromLog = classifyInterrupted(logText)
+    const prUrl = fromLog.prUrl ?? target.prUrl
+    const status = prUrl ? ('done' as const) : fromLog.status
     const record: RunRecord = {
       scheduleId: id,
       worktreePath: target.worktreePath,

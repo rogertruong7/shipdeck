@@ -38,6 +38,8 @@ export interface Schedule {
   startedAt?: string
   pid?: number
   sessionId?: string
+  // set mid-run as soon as the PR URL shows up in claude's output
+  prUrl?: string
   // set on schedules created by "Resume run": claude restarts from this session
   resumeSessionId?: string
 }

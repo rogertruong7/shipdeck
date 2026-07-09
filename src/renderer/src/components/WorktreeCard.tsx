@@ -52,6 +52,26 @@ export function WorktreeCard({ wt, schedule, onSchedulesChange, hidden, onToggle
   const ins = (shownFiles ?? wt.files).reduce((n, f) => n + f.insertions, 0)
   const del = (shownFiles ?? wt.files).reduce((n, f) => n + f.deletions, 0)
 
+  // mid-run URL from the live schedule beats the (cached) scan annotation
+  const livePrUrl = schedule?.prUrl ?? prUrl
+  const prButtons = livePrUrl ? (
+    <>
+      <button className="sched-chip" title={livePrUrl} onClick={() => window.open(livePrUrl)}>
+        ↗ View PR
+      </button>
+      <button
+        className="sched-chip"
+        onClick={() => {
+          void api.copyPlain(livePrUrl)
+          setCopied(true)
+          setTimeout(() => setCopied(false), 1500)
+        }}
+      >
+        {copied ? '✓ Copied' : '⧉ Copy PR link'}
+      </button>
+    </>
+  ) : null
+
   return (
     <article className="card">
       <header className="card-head">
@@ -136,6 +156,7 @@ export function WorktreeCard({ wt, schedule, onSchedulesChange, hidden, onToggle
       </ul>
       <footer className="card-foot">
         {schedule ? (
+          <div className="foot-actions">
           <span className="sched-chip armed">
             ⏱ {new Date(schedule.fireAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })} → PR
             {schedule.args ? ` (reviewers: ${schedule.args})` : ''}
@@ -152,6 +173,8 @@ export function WorktreeCard({ wt, schedule, onSchedulesChange, hidden, onToggle
               </button>
             )}
           </span>
+          {prButtons}
+          </div>
         ) : (
           <div className="foot-actions">
             <button className="sched-chip primary-ghost" disabled={wt.files.length === 0 || running} onClick={() => void runNow()}>
@@ -160,23 +183,7 @@ export function WorktreeCard({ wt, schedule, onSchedulesChange, hidden, onToggle
             <button className="sched-chip" disabled={wt.files.length === 0} onClick={() => setDialogOpen(true)}>
               ⏱ Schedule…
             </button>
-            {prUrl && (
-              <>
-                <button className="sched-chip" title={prUrl} onClick={() => window.open(prUrl)}>
-                  ↗ View PR
-                </button>
-                <button
-                  className="sched-chip"
-                  onClick={() => {
-                    void api.copyPlain(prUrl)
-                    setCopied(true)
-                    setTimeout(() => setCopied(false), 1500)
-                  }}
-                >
-                  {copied ? '✓ Copied' : '⧉ Copy PR link'}
-                </button>
-              </>
-            )}
+            {prButtons}
           </div>
         )}
       </footer>
