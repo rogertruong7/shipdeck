@@ -69,8 +69,8 @@ em.del { color: var(--red); font-style: normal; }
 .dl.meta { color: var(--muted); }
 .card-foot { padding: 8px 14px 12px; }
 .sched-chip { border-radius: 14px; font-size: 13px; }
-.sched-chip.armed { display: inline-flex; gap: 8px; align-items: center; background: #1f6feb22; border: 1px solid var(--accent); color: var(--accent); padding: 4px 12px; }
-.sched-chip .x { border: none; background: none; padding: 0; color: var(--muted); }
+.sched-chip.armed { display: inline-flex; gap: 8px; align-items: baseline; background: #1f6feb22; border: 1px solid var(--accent); color: var(--accent); padding: 4px 12px; }
+.sched-chip .x { border: none; background: none; padding: 0; color: var(--muted); align-self: center; line-height: 1; }
 .running { color: var(--amber); font-style: normal; }
 .clean-section { color: var(--muted); }
 .clean-section > summary { cursor: pointer; margin-bottom: 12px; }
