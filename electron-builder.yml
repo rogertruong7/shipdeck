@@ -6,5 +6,10 @@ files:
   - out/**
   - package.json
 mac:
-  target: dir
+  target: dmg
   identity: null
+publish:
+  provider: github
+  owner: rogertruong7
+  repo: shipdeck
+  releaseType: release
