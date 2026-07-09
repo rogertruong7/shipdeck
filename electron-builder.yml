@@ -1,0 +1,10 @@
+appId: com.roger.shipdeck
+productName: Shipdeck
+directories:
+  output: dist
+files:
+  - out/**
+  - package.json
+mac:
+  target: dir
+  identity: null

@@ -1,0 +1,95 @@
+import { execFile } from 'node:child_process'
+import { promisify } from 'node:util'
+import { randomBytes } from 'node:crypto'
+import { SCHEDULES_FILE } from '../shared/paths'
+import { readJson, writeJsonAtomic } from '../shared/state-files'
+import { armReplacing } from '../shared/schedule-logic'
+import type { Schedule, ShipdeckConfig } from '../shared/types'
+
+const exec = promisify(execFile)
+const WAKE_LEAD_MS = 2 * 60 * 1000
+
+export interface ArmInput {
+  worktreePath: string
+  repo: string
+  branch: string
+  fireAt: string
+  args: string
+}
+
+export function pmsetDate(d: Date): string {
+  const p = (n: number) => String(n).padStart(2, '0')
+  return `${p(d.getMonth() + 1)}/${p(d.getDate())}/${String(d.getFullYear()).slice(2)} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`
+}
+
+async function armWakeSafe(fireAt: Date): Promise<void> {
+  try {
+    await exec('sudo', ['-n', 'pmset', 'schedule', 'wake', pmsetDate(new Date(fireAt.getTime() - WAKE_LEAD_MS))])
+  } catch (e) {
+    console.warn('pmset wake arming failed (sudoers rule missing?):', e)
+  }
+}
+
+async function cancelWakeSafe(fireAt: Date): Promise<void> {
+  try {
+    await exec('sudo', ['-n', 'pmset', 'schedule', 'cancel', 'wake', pmsetDate(new Date(fireAt.getTime() - WAKE_LEAD_MS))])
+  } catch {
+    // best-effort
+  }
+}
+
+export async function armSchedule(input: ArmInput, config: ShipdeckConfig): Promise<Schedule[]> {
+  const schedules = readJson<Schedule[]>(SCHEDULES_FILE, [])
+  const existing = schedules.find(s => s.worktreePath === input.worktreePath && s.status === 'armed')
+  const next: Schedule = {
+    id: `sch_${randomBytes(4).toString('hex')}`,
+    ...input,
+    status: 'armed',
+    createdAt: new Date().toISOString(),
+  }
+  const updated = armReplacing(schedules, next)
+  writeJsonAtomic(SCHEDULES_FILE, updated)
+  if (config.wakeArmingEnabled) {
+    if (existing) await cancelWakeSafe(new Date(existing.fireAt))
+    await armWakeSafe(new Date(next.fireAt))
+  }
+  return updated
+}
+
+export interface RunNowInput {
+  worktreePath: string
+  repo: string
+  branch: string
+  args: string
+}
+
+// Arm for "now" and kick the launchd agent so it fires this tick instead of
+// waiting up to 60s. Execution still goes through the single agent path — no
+// second runner, no double-commit risk.
+export async function runNow(input: RunNowInput): Promise<Schedule[]> {
+  const schedules = readJson<Schedule[]>(SCHEDULES_FILE, [])
+  const next: Schedule = {
+    id: `sch_${randomBytes(4).toString('hex')}`,
+    ...input,
+    fireAt: new Date().toISOString(),
+    status: 'armed',
+    createdAt: new Date().toISOString(),
+  }
+  writeJsonAtomic(SCHEDULES_FILE, armReplacing(schedules, next))
+  try {
+    const uid = process.getuid?.() ?? 501
+    await exec('launchctl', ['kickstart', `gui/${uid}/com.roger.shipdeck.agent`])
+  } catch {
+    // agent will still pick it up on its next 60s tick
+  }
+  return readJson<Schedule[]>(SCHEDULES_FILE, [])
+}
+
+export async function cancelSchedule(id: string, config: ShipdeckConfig): Promise<Schedule[]> {
+  const schedules = readJson<Schedule[]>(SCHEDULES_FILE, [])
+  const target = schedules.find(s => s.id === id)
+  const updated = schedules.filter(s => s.id !== id)
+  writeJsonAtomic(SCHEDULES_FILE, updated)
+  if (target && config.wakeArmingEnabled) await cancelWakeSafe(new Date(target.fireAt))
+  return updated
+}
