@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type MouseEvent } from 'react'
 import type { FileDiffStat, Schedule, WorktreeInfo } from '../../../shared/types'
+import type { HiddenLists } from '../../../shared/hidden'
 import { api } from '../api'
 import { DiffView } from './DiffView'
 import { ScheduleDialog } from './ScheduleDialog'
@@ -8,9 +9,11 @@ interface Props {
   wt: WorktreeInfo
   schedule?: Schedule
   onSchedulesChange: (s: Schedule[]) => void
+  hidden: HiddenLists
+  onToggleHide: (kind: 'repo' | 'worktree', value: string, hide: boolean) => void
 }
 
-export function WorktreeCard({ wt, schedule, onSchedulesChange }: Props) {
+export function WorktreeCard({ wt, schedule, onSchedulesChange, hidden, onToggleHide }: Props) {
   const [openFile, setOpenFile] = useState<string | null>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [running, setRunning] = useState(false)
@@ -60,6 +63,27 @@ export function WorktreeCard({ wt, schedule, onSchedulesChange }: Props) {
           {wt.ahead > 0 ? ` · ↑${wt.ahead}` : ''}
           {wt.behind > 0 ? ` · ↓${wt.behind}` : ''}
         </span>
+        <details className="card-menu">
+          <summary title="More actions">⋯</summary>
+          <div className="card-menu-items">
+            {(() => {
+              const pathHidden = hidden.worktrees.includes(wt.path)
+              const repoHidden = hidden.repos.includes(wt.repo)
+              const pick = (kind: 'repo' | 'worktree', value: string, hide: boolean) => (e: MouseEvent) => {
+                ;(e.target as HTMLElement).closest('details')?.removeAttribute('open')
+                onToggleHide(kind, value, hide)
+              }
+              return (
+                <>
+                  <button onClick={pick('worktree', wt.path, !pathHidden)}>{pathHidden ? 'Unhide worktree' : 'Hide worktree'}</button>
+                  <button onClick={pick('repo', wt.repo, !repoHidden)}>
+                    {repoHidden ? `Unhide all of ${wt.repo}` : `Hide all of ${wt.repo}`}
+                  </button>
+                </>
+              )
+            })()}
+          </div>
+        </details>
       </header>
       {wt.error && <div className="card-error">{wt.error}</div>}
       {wt.commitsAhead.length > 0 && (

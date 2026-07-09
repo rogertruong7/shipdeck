@@ -166,3 +166,13 @@ em.del { color: var(--red); font-style: normal; }
 .onboard-skill { display: flex; flex-direction: column; gap: 6px; }
 .onboard-skill-head { display: flex; align-items: center; gap: 8px; font-size: 13px; }
 .skill-editor.short { height: 180px; }
+
+/* Hidden worktrees */
+.side-section { margin-top: 14px; padding: 4px 10px; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; }
+.card-menu { position: relative; margin-left: auto; }
+.card-menu summary { list-style: none; cursor: pointer; color: var(--muted); padding: 0 6px; border-radius: 4px; }
+.card-menu summary::-webkit-details-marker { display: none; }
+.card-menu summary:hover { color: var(--text); background: var(--bg); }
+.card-menu-items { position: absolute; right: 0; top: 22px; z-index: 10; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 4px; display: flex; flex-direction: column; min-width: 180px; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35); }
+.card-menu-items button { text-align: left; background: none; border: none; padding: 6px 10px; border-radius: 5px; font-size: 12.5px; }
+.card-menu-items button:hover { background: var(--bg); }

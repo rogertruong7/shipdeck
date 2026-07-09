@@ -7,6 +7,8 @@ export interface ShipdeckConfig {
   wakeArmingEnabled: boolean
   shellPath: string
   onboardingDone: boolean
+  hiddenRepos: string[]
+  hiddenWorktrees: string[]
 }
 
 export const DEFAULT_CONFIG: ShipdeckConfig = {
@@ -18,6 +20,8 @@ export const DEFAULT_CONFIG: ShipdeckConfig = {
   wakeArmingEnabled: false,
   shellPath: '',
   onboardingDone: false,
+  hiddenRepos: [],
+  hiddenWorktrees: [],
 }
 
 export type ScheduleStatus = 'armed' | 'running'

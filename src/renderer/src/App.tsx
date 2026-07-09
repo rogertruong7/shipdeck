@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { AgentHealth, BranchGroup, RunRecord, Schedule, ShipdeckConfig } from '../../shared/types'
+import { groupWorktrees } from '../../shared/grouping'
+import { partitionWorktrees, type HiddenLists } from '../../shared/hidden'
 import { api } from './api'
 import { TopBar } from './components/TopBar'
 import { Sidebar } from './components/Sidebar'
@@ -26,12 +28,14 @@ export default function App() {
   const [claudeMissing, setClaudeMissing] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [onboarding, setOnboarding] = useState<{ config: ShipdeckConfig; missing: string[] } | null>(null)
+  const [hidden, setHidden] = useState<HiddenLists>({ repos: [], worktrees: [] })
 
   useEffect(() => {
     void (async () => {
       try {
         const c = await api.getConfig()
         setClaudeMissing(c.claudePath === 'auto')
+        setHidden({ repos: c.hiddenRepos, worktrees: c.hiddenWorktrees })
         if (c.onboardingDone) return
         const missing = (await Promise.all(MANAGED_SKILLS.map(async s => ((await api.skillExists(s)) ? null : s)))).filter(
           (s): s is string => s !== null,
@@ -74,15 +78,45 @@ export default function App() {
     }
   }, [refresh])
 
-  const visible = useMemo(() => {
-    const f = filter.trim().toLowerCase()
-    if (!f) return groups
-    return groups.filter(g => g.key.toLowerCase().includes(f) || g.worktrees.some(w => w.repo.toLowerCase().includes(f)))
-  }, [groups, filter])
+  const toggleHide = useCallback(async (kind: 'repo' | 'worktree', value: string, hide: boolean) => {
+    const c = await api.getConfig()
+    const set = new Set(kind === 'repo' ? c.hiddenRepos : c.hiddenWorktrees)
+    if (hide) set.add(value)
+    else set.delete(value)
+    const next = await api.setConfig(kind === 'repo' ? { hiddenRepos: [...set] } : { hiddenWorktrees: [...set] })
+    setHidden({ repos: next.hiddenRepos, worktrees: next.hiddenWorktrees })
+  }, [])
+
+  const { visibleGroups, hiddenGroups } = useMemo(() => {
+    const parts = partitionWorktrees(
+      groups.flatMap(g => g.worktrees),
+      hidden,
+    )
+    return { visibleGroups: groupWorktrees(parts.visible), hiddenGroups: groupWorktrees(parts.hidden) }
+  }, [groups, hidden])
+
+  const matches = useCallback(
+    (g: BranchGroup) => {
+      const f = filter.trim().toLowerCase()
+      return !f || g.key.toLowerCase().includes(f) || g.worktrees.some(w => w.repo.toLowerCase().includes(f))
+    },
+    [filter],
+  )
+
+  const visible = useMemo(() => visibleGroups.filter(matches), [visibleGroups, matches])
+  const hiddenVisible = useMemo(() => hiddenGroups.filter(matches), [hiddenGroups, matches])
 
   const dirty = visible.filter(g => g.dirty)
   const clean = visible.filter(g => !g.dirty)
-  const shown = selectedKey ? visible.filter(g => g.key === selectedKey) : dirty
+  // A selected group may have both visible and hidden worktrees — show them
+  // together so hidden ones can be unhidden in place.
+  const selectedParts = selectedKey ? [...visible, ...hiddenVisible].filter(g => g.key === selectedKey) : null
+  const shown =
+    selectedParts === null
+      ? dirty
+      : selectedParts.length <= 1
+        ? selectedParts
+        : [{ ...selectedParts[0], worktrees: selectedParts.flatMap(p => p.worktrees), dirty: selectedParts.some(p => p.dirty) }]
 
   return (
     <div className="app">
@@ -103,10 +137,10 @@ export default function App() {
         </div>
       )}
       <div className="body">
-        <Sidebar groups={visible} selected={selectedKey} onSelect={setSelectedKey} filter={filter} onFilter={setFilter} />
+        <Sidebar groups={visible} hiddenGroups={hiddenVisible} selected={selectedKey} onSelect={setSelectedKey} filter={filter} onFilter={setFilter} />
         <main className="main">
           {shown.map(g => (
-            <GroupView key={g.key} group={g} schedules={schedules} onSchedulesChange={setSchedules} />
+            <GroupView key={g.key} group={g} schedules={schedules} onSchedulesChange={setSchedules} hidden={hidden} onToggleHide={toggleHide} />
           ))}
           {!selectedKey && clean.length > 0 && (
             <details className="clean-section">
@@ -114,7 +148,7 @@ export default function App() {
                 {clean.length} clean branch{clean.length === 1 ? '' : 'es'}
               </summary>
               {clean.map(g => (
-                <GroupView key={g.key} group={g} schedules={schedules} onSchedulesChange={setSchedules} />
+                <GroupView key={g.key} group={g} schedules={schedules} onSchedulesChange={setSchedules} hidden={hidden} onToggleHide={toggleHide} />
               ))}
             </details>
           )}
