@@ -93,7 +93,7 @@ export function RunsDrawer({ runs, schedules, onClose, onSchedulesChange }: { ru
             {schedules.map(s => (
               <li key={s.id} className="run armed">
                 <div className="run-head">
-                  <span className="run-status">{s.status === 'running' ? 'Running…' : 'Armed'}</span>
+                  <span className="run-status">{s.status === 'running' ? (s.prUrl ? 'Watching checks…' : 'Running…') : 'Armed'}</span>
                   <span>
                     {s.repo} @ {s.branch}
                   </span>

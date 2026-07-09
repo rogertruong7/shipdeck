@@ -162,7 +162,7 @@ export function WorktreeCard({ wt, schedule, onSchedulesChange, hidden, onToggle
             {schedule.args ? ` (reviewers: ${schedule.args})` : ''}
             {schedule.status === 'running' ? (
               <>
-                <em className="running">running…</em>
+                <em className="running">{schedule.prUrl ? 'PR up — watching checks…' : 'running…'}</em>
                 <button className="x" title="Force stop this run" onClick={() => void api.forceStopSchedule(schedule.id).then(onSchedulesChange)}>
                   ✕
                 </button>
