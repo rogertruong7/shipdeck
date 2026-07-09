@@ -9,6 +9,7 @@ import { groupWorktrees } from '../shared/grouping'
 import { markdownToSlackHtml } from '../shared/slack-format'
 import type { RunRecord, Schedule, ShipdeckConfig } from '../shared/types'
 import { branchFiles, fileDiff, scanWorktrees } from './scanner'
+import { annotatePrUrls } from './prs'
 import { armSchedule, cancelSchedule, forceStopSchedule, resumeRun, runNow, type ArmInput, type ResumeInput, type RunNowInput } from './schedules'
 import { agentHealth, installAgent } from './agent-installer'
 import { loadConfig, saveConfig } from './config'
@@ -29,7 +30,7 @@ let activeSummary: SummaryRunState | null = null
 export function registerIpc(): void {
   ipcMain.handle('scan', async () => {
     const c = loadConfig()
-    return groupWorktrees(await scanWorktrees(c.scanRoots, c.excludeDirs))
+    return groupWorktrees(await annotatePrUrls(await scanWorktrees(c.scanRoots, c.excludeDirs), c.shellPath))
   })
   ipcMain.handle('diff', (_e, wt: string, file: string, untracked: boolean, vsBranch: boolean) => fileDiff(wt, file, untracked, vsBranch))
   ipcMain.handle('branch-files', (_e, wt: string) => branchFiles(wt))

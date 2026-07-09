@@ -88,6 +88,7 @@ export interface WorktreeInfo extends WorktreeRef {
   commitsAhead: CommitInfo[]
   lastActivity: string
   defaultBranch: string
+  prUrl?: string
   error?: string
 }
 

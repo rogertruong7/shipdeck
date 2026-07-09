@@ -28,7 +28,7 @@ export function GroupView({ group, schedules, onSchedulesChange, hidden, onToggl
           onSchedulesChange={onSchedulesChange}
           hidden={hidden}
           onToggleHide={onToggleHide}
-          prUrl={prByPath.get(w.path)}
+          prUrl={w.prUrl ?? prByPath.get(w.path)}
         />
       ))}
     </section>
