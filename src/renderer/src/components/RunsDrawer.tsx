@@ -88,9 +88,14 @@ export function RunsDrawer({ runs, schedules, onClose, onSchedulesChange }: { ru
                   </button>
                 )}
                 {s.status === 'running' && (
-                  <button className="link" onClick={() => toggleLog(s.id)}>
-                    {openLog === s.id ? 'Hide log' : 'Tail log'}
-                  </button>
+                  <>
+                    <button className="link" onClick={() => toggleLog(s.id)}>
+                      {openLog === s.id ? 'Hide log' : 'Tail log'}
+                    </button>
+                    <button className="link" onClick={() => void api.forceStopSchedule(s.id).then(onSchedulesChange)}>
+                      Force stop
+                    </button>
+                  </>
                 )}
                 {openLog === s.id && <pre className="runlog">{log || '(waiting for output…)'}</pre>}
               </li>

@@ -1,10 +1,12 @@
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { randomBytes } from 'node:crypto'
-import { SCHEDULES_FILE } from '../shared/paths'
+import { appendFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { RUNS_DIR, SCHEDULES_FILE } from '../shared/paths'
 import { readJson, writeJsonAtomic } from '../shared/state-files'
-import { armReplacing } from '../shared/schedule-logic'
-import type { Schedule, ShipdeckConfig } from '../shared/types'
+import { armReplacing, PR_URL_RE } from '../shared/schedule-logic'
+import type { RunRecord, Schedule, ShipdeckConfig } from '../shared/types'
 
 const exec = promisify(execFile)
 const WAKE_LEAD_MS = 2 * 60 * 1000
@@ -83,6 +85,61 @@ export async function runNow(input: RunNowInput): Promise<Schedule[]> {
     // agent will still pick it up on its next 60s tick
   }
   return readJson<Schedule[]>(SCHEDULES_FILE, [])
+}
+
+// For runs stuck at "running" (agent died mid-run, orphaned process): kill the
+// recorded process group if it's still alive, classify the run from whatever it
+// logged (PR URL → done, otherwise needs_attention), and clear the schedule.
+export function forceStopSchedule(id: string, now = new Date()): Schedule[] {
+  const schedules = readJson<Schedule[]>(SCHEDULES_FILE, [])
+  const target = schedules.find(s => s.id === id && s.status === 'running')
+  if (!target) return schedules
+  if (target.pid) {
+    try {
+      process.kill(-target.pid, 'SIGKILL')
+    } catch {
+      try {
+        process.kill(target.pid, 'SIGKILL')
+      } catch {
+        // already gone
+      }
+    }
+  }
+  mkdirSync(RUNS_DIR, { recursive: true })
+  const logPath = join(RUNS_DIR, `${id}.log`)
+  let logText = ''
+  try {
+    logText = readFileSync(logPath, 'utf8')
+  } catch {
+    // no log yet
+  }
+  try {
+    appendFileSync(logPath, '\nforce-stopped from the app\n')
+  } catch {
+    // best-effort
+  }
+  const recordPath = join(RUNS_DIR, `${id}.json`)
+  if (!existsSync(recordPath)) {
+    const prUrl = logText.match(PR_URL_RE)?.[0]
+    const record: RunRecord = {
+      scheduleId: id,
+      worktreePath: target.worktreePath,
+      repo: target.repo,
+      branch: target.branch,
+      args: target.args,
+      scheduledFor: target.fireAt,
+      startedAt: target.startedAt ?? target.fireAt,
+      finishedAt: now.toISOString(),
+      exitCode: null,
+      status: prUrl ? 'done' : 'needs_attention',
+      lateBySeconds: 0,
+      ...(prUrl ? { prUrl } : {}),
+    }
+    writeJsonAtomic(recordPath, record)
+  }
+  const updated = schedules.filter(s => s.id !== id)
+  writeJsonAtomic(SCHEDULES_FILE, updated)
+  return updated
 }
 
 export async function cancelSchedule(id: string, config: ShipdeckConfig): Promise<Schedule[]> {

@@ -8,7 +8,7 @@ import { groupWorktrees } from '../shared/grouping'
 import { markdownToSlackHtml } from '../shared/slack-format'
 import type { RunRecord, Schedule, ShipdeckConfig } from '../shared/types'
 import { branchFiles, fileDiff, scanWorktrees } from './scanner'
-import { armSchedule, cancelSchedule, runNow, type ArmInput, type RunNowInput } from './schedules'
+import { armSchedule, cancelSchedule, forceStopSchedule, runNow, type ArmInput, type RunNowInput } from './schedules'
 import { agentHealth, installAgent } from './agent-installer'
 import { loadConfig, saveConfig } from './config'
 import { enableWakeArming } from './wake-setup'
@@ -36,6 +36,7 @@ export function registerIpc(): void {
   ipcMain.handle('schedules:arm', (_e, input: ArmInput) => armSchedule(input, loadConfig()))
   ipcMain.handle('schedules:cancel', (_e, id: string) => cancelSchedule(id, loadConfig()))
   ipcMain.handle('schedules:runNow', (_e, input: RunNowInput) => runNow(input))
+  ipcMain.handle('schedules:forceStop', (_e, id: string) => forceStopSchedule(id))
   ipcMain.handle('runs:list', async (): Promise<RunRecord[]> => {
     let names: string[] = []
     try {

@@ -36,6 +36,7 @@ export interface Schedule {
   status: ScheduleStatus
   createdAt: string
   startedAt?: string
+  pid?: number
 }
 
 export type RunStatus = 'done' | 'failed' | 'needs_attention' | 'skipped_clean'

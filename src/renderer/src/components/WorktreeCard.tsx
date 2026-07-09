@@ -138,7 +138,12 @@ export function WorktreeCard({ wt, schedule, onSchedulesChange, hidden, onToggle
             ⏱ {new Date(schedule.fireAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })} → PR
             {schedule.args ? ` (reviewers: ${schedule.args})` : ''}
             {schedule.status === 'running' ? (
-              <em className="running">running…</em>
+              <>
+                <em className="running">running…</em>
+                <button className="x" title="Force stop this run" onClick={() => void api.forceStopSchedule(schedule.id).then(onSchedulesChange)}>
+                  ✕
+                </button>
+              </>
             ) : (
               <button className="x" onClick={() => void api.cancelSchedule(schedule.id).then(onSchedulesChange)}>
                 ✕

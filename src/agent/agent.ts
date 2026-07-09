@@ -72,7 +72,13 @@ export async function tick(now = new Date()): Promise<void> {
         continue
       }
       appendLog(AGENT_LOG, `run start ${due.id} ${due.repo}@${due.branch}`)
-      const record = await executeSchedule(running, { runsDir: RUNS_DIR, config, now: () => new Date() })
+      const record = await executeSchedule(running, {
+        runsDir: RUNS_DIR,
+        config,
+        now: () => new Date(),
+        // persist the claude pid so the app's force-stop can kill the process group
+        onSpawn: pid => mutateSchedules(s => s.map(x => (x.id === due.id ? { ...x, pid } : x))),
+      })
       writeJsonAtomic(join(RUNS_DIR, `${due.id}.json`), record)
       mutateSchedules(s => s.filter(x => x.id !== due.id))
       appendLog(AGENT_LOG, `run end ${due.id} ${record.status}`)

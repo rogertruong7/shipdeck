@@ -8,6 +8,7 @@ const api = {
   armSchedule: (input: unknown) => ipcRenderer.invoke('schedules:arm', input),
   cancelSchedule: (id: string) => ipcRenderer.invoke('schedules:cancel', id),
   runNow: (input: unknown) => ipcRenderer.invoke('schedules:runNow', input),
+  forceStopSchedule: (id: string) => ipcRenderer.invoke('schedules:forceStop', id),
   listRuns: () => ipcRenderer.invoke('runs:list'),
   readRunLog: (id: string) => ipcRenderer.invoke('runs:log', id),
   agentHealth: () => ipcRenderer.invoke('agent:health'),

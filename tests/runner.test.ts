@@ -86,6 +86,13 @@ describe('executeSchedule', () => {
     expect(rec.exitCode).toBeNull()
   })
 
+  it('reports the spawned pid through onSpawn', async () => {
+    const shimPath = await makeShim(root, 'claude-pid', 'echo "https://github.com/acme/alpha/pull/7"')
+    let pid = 0
+    await executeSchedule(sch(dirtyWt), { runsDir, config: cfg(shimPath), now: () => new Date(), onSpawn: p => (pid = p) })
+    expect(pid).toBeGreaterThan(0)
+  })
+
   it('records lateBySeconds from fireAt', async () => {
     const shimPath = await makeShim(root, 'claude-late', 'echo "https://github.com/x/y/pull/1"')
     const s = sch(dirtyWt, { fireAt: new Date(Date.now() - 10 * 60000).toISOString() })

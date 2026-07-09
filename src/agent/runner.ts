@@ -1,17 +1,18 @@
 import { execFile, spawn } from 'node:child_process'
 import { createWriteStream } from 'node:fs'
 import { join } from 'node:path'
-import { lateBySeconds } from '../shared/schedule-logic'
+import { lateBySeconds, PR_URL_RE } from '../shared/schedule-logic'
 import { formatStreamEvent } from '../shared/stream-format'
 import type { RunRecord, Schedule, ShipdeckConfig } from '../shared/types'
 
-const PR_URL_RE = /https:\/\/github\.com\/[^\s)]+\/pull\/\d+/
 const RUN_TIMEOUT_MS = 30 * 60 * 1000
 
 export interface RunnerCtx {
   runsDir: string
   config: ShipdeckConfig
   now(): Date
+  // Reports the spawned claude pid so the caller can persist it for force-stop.
+  onSpawn?(pid: number): void
 }
 
 function isClean(wtPath: string): Promise<boolean> {
@@ -53,7 +54,10 @@ function runClaude(s: Schedule, ctx: RunnerCtx, logPath: string): Promise<{ exit
       log.write(buf)
     })
     if (child.pid) {
-      const caffeinate = spawn('caffeinate', ['-i', '-w', String(child.pid)], { stdio: 'ignore' })
+      ctx.onSpawn?.(child.pid)
+      // -s holds a PreventSystemSleep assertion so closed-lid dark wakes survive
+      // the run (AC only, which matches when scheduled wakes fire at all)
+      const caffeinate = spawn('caffeinate', ['-s', '-i', '-w', String(child.pid)], { stdio: 'ignore' })
       caffeinate.on('error', () => {})
     }
     const timer = setTimeout(() => {

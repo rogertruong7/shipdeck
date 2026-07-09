@@ -29,6 +29,7 @@ export interface ShipdeckApi {
   armSchedule(input: ArmInput): Promise<Schedule[]>
   cancelSchedule(id: string): Promise<Schedule[]>
   runNow(input: RunNowInput): Promise<Schedule[]>
+  forceStopSchedule(id: string): Promise<Schedule[]>
   listRuns(): Promise<RunRecord[]>
   readRunLog(id: string): Promise<string>
   agentHealth(): Promise<AgentHealth>

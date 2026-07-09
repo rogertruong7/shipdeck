@@ -1,5 +1,7 @@
 import type { Schedule } from './types'
 
+export const PR_URL_RE = /https:\/\/github\.com\/[^\s)]+\/pull\/\d+/
+
 export function selectDue(schedules: Schedule[], now: Date): Schedule[] {
   return schedules
     .filter(s => s.status === 'armed' && Date.parse(s.fireAt) <= now.getTime())
