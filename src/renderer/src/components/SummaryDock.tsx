@@ -39,7 +39,7 @@ export function SummaryDock({ startSignal, onOpenRuns, onDone }: { startSignal: 
     setElapsed(0)
     setCopied('')
     setPhase('running')
-    setExpanded(true)
+    setExpanded(false)
     void api.runDailySummary()
   }, [startSignal])
 
