@@ -7,6 +7,14 @@ describe('formatStreamEvent', () => {
     expect(formatStreamEvent(line)).toBe('Analyzing the diff now.')
   })
 
+  it('renders thinking blocks with a thought marker', () => {
+    const line = JSON.stringify({
+      type: 'assistant',
+      message: { content: [{ type: 'thinking', thinking: 'The diff touches two features,\nso two commits.' }] },
+    })
+    expect(formatStreamEvent(line)).toBe('💭 The diff touches two features,\nso two commits.')
+  })
+
   it('renders tool_use blocks with the interesting input field', () => {
     const bash = JSON.stringify({
       type: 'assistant',

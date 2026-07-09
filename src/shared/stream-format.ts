@@ -6,6 +6,7 @@ const MAX_DETAIL = 200
 interface ContentBlock {
   type: string
   text?: string
+  thinking?: string
   name?: string
   input?: Record<string, unknown>
 }
@@ -34,6 +35,7 @@ export function formatStreamEvent(line: string): string | null {
   const parts: string[] = []
   for (const block of event.message?.content ?? []) {
     if (block.type === 'text' && block.text?.trim()) parts.push(block.text.trim())
+    else if (block.type === 'thinking' && block.thinking?.trim()) parts.push(`💭 ${block.thinking.trim()}`)
     else if (block.type === 'tool_use') parts.push(`[tool] ${block.name ?? 'unknown'}${toolDetail(block.input)}`)
   }
   return parts.length > 0 ? parts.join('\n') : null
