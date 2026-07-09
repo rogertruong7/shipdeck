@@ -35,12 +35,15 @@ export interface ShipdeckApi {
   repairAgent(): Promise<AgentHealth>
   enableWakeArming(): Promise<boolean>
   getConfig(): Promise<ShipdeckConfig>
+  setConfig(patch: Partial<ShipdeckConfig>): Promise<ShipdeckConfig>
+  pickFolder(): Promise<string | null>
   runDailySummary(): Promise<void>
   onSummaryChunk(cb: (chunk: string) => void): () => void
   onSummaryLog(cb: (line: string) => void): () => void
   onSummaryDone(cb: (r: SummaryResult) => void): () => void
   copyForSlack(md: string): Promise<void>
   copyPlain(text: string): Promise<void>
+  skillExists(name: string): Promise<boolean>
   readSkill(name: string): Promise<string>
   writeSkill(name: string, content: string): Promise<void>
 }

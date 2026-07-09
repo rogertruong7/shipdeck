@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
@@ -9,6 +10,10 @@ const DEFAULT_BASE = join(homedir(), '.claude', 'skills')
 export function skillPath(name: string, base = DEFAULT_BASE): string {
   if (!(EDITABLE_SKILLS as readonly string[]).includes(name)) throw new Error(`not an editable skill: ${name}`)
   return join(base, name, 'SKILL.md')
+}
+
+export function skillExists(name: string, base?: string): boolean {
+  return existsSync(skillPath(name, base))
 }
 
 export async function readSkill(name: string, base?: string): Promise<string> {

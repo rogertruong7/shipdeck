@@ -155,3 +155,14 @@ em.del { color: var(--red); font-style: normal; }
 .dock-body .runlog { max-height: 40vh; margin: 0; }
 .dock-body .summary-body { border: none; background: none; padding: 0; max-height: none; }
 .dock-actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+
+/* Onboarding + settings */
+.dialog.onboard { max-height: 85vh; overflow-y: auto; }
+.folder-list { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+.folder-row { display: flex; align-items: center; gap: 8px; width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 5px 10px; }
+.folder-row code { flex: 1; font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.folder-add { align-self: flex-start; }
+.chip-input.full { width: 100%; flex: none; box-sizing: border-box; }
+.onboard-skill { display: flex; flex-direction: column; gap: 6px; }
+.onboard-skill-head { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.skill-editor.short { height: 180px; }

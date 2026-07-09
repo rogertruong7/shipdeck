@@ -3,7 +3,7 @@ import { mkdtempSync } from 'node:fs'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { readSkill, skillPath, writeSkill } from '../src/main/skills'
+import { readSkill, skillExists, skillPath, writeSkill } from '../src/main/skills'
 
 const base = () => mkdtempSync(join(tmpdir(), 'shipdeck-skills-'))
 
@@ -13,6 +13,15 @@ describe('skillPath', () => {
     expect(skillPath('daily-summary', '/b')).toBe('/b/daily-summary/SKILL.md')
     expect(() => skillPath('other-skill', '/b')).toThrow()
     expect(() => skillPath('../../../etc/passwd', '/b')).toThrow()
+  })
+})
+
+describe('skillExists', () => {
+  it('reflects whether the SKILL.md file is present', () => {
+    const b = base()
+    expect(skillExists('daily-summary', b)).toBe(false)
+    writeSkill('daily-summary', 'content', b)
+    expect(skillExists('daily-summary', b)).toBe(true)
   })
 })
 

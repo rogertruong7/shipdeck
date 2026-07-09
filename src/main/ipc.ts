@@ -1,4 +1,4 @@
-import { clipboard, ipcMain } from 'electron'
+import { clipboard, dialog, ipcMain } from 'electron'
 import { readFile, readdir } from 'node:fs/promises'
 import { appendFileSync, mkdirSync } from 'node:fs'
 import { join } from 'node:path'
@@ -6,14 +6,14 @@ import { RUNS_DIR, SCHEDULES_FILE } from '../shared/paths'
 import { readJson, writeJsonAtomic } from '../shared/state-files'
 import { groupWorktrees } from '../shared/grouping'
 import { markdownToSlackHtml } from '../shared/slack-format'
-import type { RunRecord, Schedule } from '../shared/types'
+import type { RunRecord, Schedule, ShipdeckConfig } from '../shared/types'
 import { branchFiles, fileDiff, scanWorktrees } from './scanner'
 import { armSchedule, cancelSchedule, runNow, type ArmInput, type RunNowInput } from './schedules'
 import { agentHealth, installAgent } from './agent-installer'
 import { loadConfig, saveConfig } from './config'
 import { enableWakeArming } from './wake-setup'
 import { runDailySummary } from './claude-runner'
-import { readSkill, writeSkill } from './skills'
+import { readSkill, skillExists, writeSkill } from './skills'
 
 interface SummaryRunState {
   id: string
@@ -72,6 +72,15 @@ export function registerIpc(): void {
     return ok
   })
   ipcMain.handle('config:get', () => loadConfig())
+  ipcMain.handle('config:set', (_e, patch: Partial<ShipdeckConfig>) => {
+    const next = { ...loadConfig(), ...patch }
+    saveConfig(next)
+    return next
+  })
+  ipcMain.handle('dialog:pickFolder', async () => {
+    const r = await dialog.showOpenDialog({ properties: ['openDirectory', 'createDirectory'] })
+    return r.canceled || r.filePaths.length === 0 ? null : r.filePaths[0]
+  })
   ipcMain.handle('summary:run', e => {
     const send = (channel: string, payload: unknown) => {
       if (!e.sender.isDestroyed()) e.sender.send(channel, payload)
@@ -128,6 +137,7 @@ export function registerIpc(): void {
   })
   ipcMain.handle('clipboard:slack', (_e, md: string) => clipboard.write({ text: md, html: markdownToSlackHtml(md) }))
   ipcMain.handle('clipboard:plain', (_e, text: string) => clipboard.writeText(text))
+  ipcMain.handle('skill:exists', (_e, name: string) => skillExists(name))
   ipcMain.handle('skill:read', (_e, name: string) => readSkill(name))
   ipcMain.handle('skill:write', (_e, name: string, content: string) => writeSkill(name, content))
 }

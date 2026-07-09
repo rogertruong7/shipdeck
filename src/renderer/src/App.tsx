@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import type { AgentHealth, BranchGroup, RunRecord, Schedule } from '../../shared/types'
+import type { AgentHealth, BranchGroup, RunRecord, Schedule, ShipdeckConfig } from '../../shared/types'
 import { api } from './api'
 import { TopBar } from './components/TopBar'
 import { Sidebar } from './components/Sidebar'
@@ -7,6 +7,10 @@ import { GroupView } from './components/GroupView'
 import { RunsDrawer } from './components/RunsDrawer'
 import { SummaryDock } from './components/SummaryDock'
 import { SkillsModal } from './components/SkillsModal'
+import { OnboardingModal } from './components/OnboardingModal'
+import { SettingsModal } from './components/SettingsModal'
+
+const MANAGED_SKILLS = ['split-commit-pr', 'daily-summary']
 
 export default function App() {
   const [groups, setGroups] = useState<BranchGroup[]>([])
@@ -20,9 +24,26 @@ export default function App() {
   const [skillsOpen, setSkillsOpen] = useState(false)
   const [scanning, setScanning] = useState(false)
   const [claudeMissing, setClaudeMissing] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const [onboarding, setOnboarding] = useState<{ config: ShipdeckConfig; missing: string[] } | null>(null)
 
   useEffect(() => {
-    void api.getConfig().then(c => setClaudeMissing(c.claudePath === 'auto'))
+    void (async () => {
+      try {
+        const c = await api.getConfig()
+        setClaudeMissing(c.claudePath === 'auto')
+        if (c.onboardingDone) return
+        const missing = (await Promise.all(MANAGED_SKILLS.map(async s => ((await api.skillExists(s)) ? null : s)))).filter(
+          (s): s is string => s !== null,
+        )
+        // A user who already has both skills was never the onboarding audience —
+        // mark it done silently so we don't re-check every launch.
+        if (missing.length > 0) setOnboarding({ config: c, missing })
+        else await api.setConfig({ onboardingDone: true })
+      } catch (e) {
+        console.error(e)
+      }
+    })()
   }, [])
 
   const refresh = useCallback(async () => {
@@ -73,6 +94,7 @@ export default function App() {
         onSummary={() => setSummarySignal(n => n + 1)}
         onRepair={() => void api.repairAgent().then(setHealth)}
         onSkills={() => setSkillsOpen(true)}
+        onSettings={() => setSettingsOpen(true)}
       />
       {claudeMissing && (
         <div className="banner">
@@ -96,12 +118,23 @@ export default function App() {
               ))}
             </details>
           )}
-          {shown.length === 0 && clean.length === 0 && <div className="empty">No worktrees found. Check scan roots in ~/.shipdeck/config.json.</div>}
+          {shown.length === 0 && clean.length === 0 && <div className="empty">No worktrees found. Choose which folders to scan in Settings (⚙).</div>}
         </main>
       </div>
       {runsOpen && <RunsDrawer runs={runs} schedules={schedules} onClose={() => setRunsOpen(false)} onSchedulesChange={setSchedules} />}
       <SummaryDock startSignal={summarySignal} onOpenRuns={() => setRunsOpen(true)} onDone={refresh} />
       {skillsOpen && <SkillsModal onClose={() => setSkillsOpen(false)} />}
+      {settingsOpen && <SettingsModal onClose={() => setSettingsOpen(false)} onSaved={() => void refresh()} />}
+      {onboarding && (
+        <OnboardingModal
+          config={onboarding.config}
+          missing={onboarding.missing}
+          onDone={() => {
+            setOnboarding(null)
+            void refresh()
+          }}
+        />
+      )}
     </div>
   )
 }

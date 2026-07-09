@@ -14,6 +14,8 @@ const api = {
   repairAgent: () => ipcRenderer.invoke('agent:repair'),
   enableWakeArming: () => ipcRenderer.invoke('wake:enable'),
   getConfig: () => ipcRenderer.invoke('config:get'),
+  setConfig: (patch: unknown) => ipcRenderer.invoke('config:set', patch),
+  pickFolder: () => ipcRenderer.invoke('dialog:pickFolder'),
   runDailySummary: () => ipcRenderer.invoke('summary:run'),
   onSummaryChunk: (cb: (chunk: string) => void) => {
     const h = (_: unknown, c: string) => cb(c)
@@ -32,6 +34,7 @@ const api = {
   },
   copyForSlack: (md: string) => ipcRenderer.invoke('clipboard:slack', md),
   copyPlain: (text: string) => ipcRenderer.invoke('clipboard:plain', text),
+  skillExists: (name: string) => ipcRenderer.invoke('skill:exists', name),
   readSkill: (name: string) => ipcRenderer.invoke('skill:read', name),
   writeSkill: (name: string, content: string) => ipcRenderer.invoke('skill:write', name, content),
 }

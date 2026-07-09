@@ -6,6 +6,7 @@ export interface ShipdeckConfig {
   reviewers: string[]
   wakeArmingEnabled: boolean
   shellPath: string
+  onboardingDone: boolean
 }
 
 export const DEFAULT_CONFIG: ShipdeckConfig = {
@@ -16,6 +17,7 @@ export const DEFAULT_CONFIG: ShipdeckConfig = {
   reviewers: [],
   wakeArmingEnabled: false,
   shellPath: '',
+  onboardingDone: false,
 }
 
 export type ScheduleStatus = 'armed' | 'running'
