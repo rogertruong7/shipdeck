@@ -53,7 +53,7 @@ export function RunsDrawer({ runs, schedules, onClose, onSchedulesChange }: { ru
           {r.prUrl}
         </a>
       )}
-      <div>
+      <div className="run-actions">
         <button className="link" onClick={() => toggleLog(r.scheduleId)}>
           {openLog === r.scheduleId ? 'Hide log' : 'Show log'}
         </button>
@@ -99,21 +99,23 @@ export function RunsDrawer({ runs, schedules, onClose, onSchedulesChange }: { ru
                   </span>
                   <span className="run-time">{new Date(s.fireAt).toLocaleString()}</span>
                 </div>
-                {s.status === 'armed' && (
-                  <button className="link" onClick={() => void api.cancelSchedule(s.id).then(onSchedulesChange)}>
-                    Cancel
-                  </button>
-                )}
-                {s.status === 'running' && (
-                  <>
-                    <button className="link" onClick={() => toggleLog(s.id)}>
-                      {openLog === s.id ? 'Hide log' : 'Tail log'}
+                <div className="run-actions">
+                  {s.status === 'armed' && (
+                    <button className="link" onClick={() => void api.cancelSchedule(s.id).then(onSchedulesChange)}>
+                      Cancel
                     </button>
-                    <button className="link" onClick={() => void api.forceStopSchedule(s.id).then(onSchedulesChange)}>
-                      Force stop
-                    </button>
-                  </>
-                )}
+                  )}
+                  {s.status === 'running' && (
+                    <>
+                      <button className="link" onClick={() => toggleLog(s.id)}>
+                        {openLog === s.id ? 'Hide log' : 'Tail log'}
+                      </button>
+                      <button className="link" onClick={() => void api.forceStopSchedule(s.id).then(onSchedulesChange)}>
+                        Force stop
+                      </button>
+                    </>
+                  )}
+                </div>
                 {openLog === s.id && <pre className="runlog">{log || '(waiting for output…)'}</pre>}
               </li>
             ))}

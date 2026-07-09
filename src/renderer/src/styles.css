@@ -180,3 +180,6 @@ em.del { color: var(--red); font-style: normal; }
 /* Hidden dropdown in sidebar */
 .side-hidden summary.side-section { cursor: pointer; user-select: none; }
 .side-hidden summary.side-section:hover { color: var(--text); }
+
+/* spaced action links under runs and schedules */
+.run-actions { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; }
