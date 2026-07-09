@@ -30,8 +30,8 @@ export function Sidebar({ groups, hiddenGroups, selected, onSelect, filter, onFi
         )
       })}
       {hiddenGroups.length > 0 && (
-        <>
-          <div className="side-section">Hidden</div>
+        <details className="side-hidden">
+          <summary className="side-section">Hidden ({hiddenGroups.length})</summary>
           {hiddenGroups.map(g => (
             <button
               key={`hidden-${g.key}`}
@@ -41,7 +41,7 @@ export function Sidebar({ groups, hiddenGroups, selected, onSelect, filter, onFi
               <span className="side-name">{g.key}</span>
             </button>
           ))}
-        </>
+        </details>
       )}
     </nav>
   )

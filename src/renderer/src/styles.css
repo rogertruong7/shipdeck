@@ -176,3 +176,7 @@ em.del { color: var(--red); font-style: normal; }
 .card-menu-items { position: absolute; right: 0; top: 22px; z-index: 10; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 4px; display: flex; flex-direction: column; min-width: 180px; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35); }
 .card-menu-items button { text-align: left; background: none; border: none; padding: 6px 10px; border-radius: 5px; font-size: 12.5px; }
 .card-menu-items button:hover { background: var(--bg); }
+
+/* Hidden dropdown in sidebar */
+.side-hidden summary.side-section { cursor: pointer; user-select: none; }
+.side-hidden summary.side-section:hover { color: var(--text); }
