@@ -11,11 +11,13 @@ interface Props {
   onSchedulesChange: (s: Schedule[]) => void
   hidden: HiddenLists
   onToggleHide: (kind: 'repo' | 'worktree', value: string, hide: boolean) => void
+  prUrl?: string
 }
 
-export function WorktreeCard({ wt, schedule, onSchedulesChange, hidden, onToggleHide }: Props) {
+export function WorktreeCard({ wt, schedule, onSchedulesChange, hidden, onToggleHide, prUrl }: Props) {
   const [openFile, setOpenFile] = useState<string | null>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [copied, setCopied] = useState(false)
   const [running, setRunning] = useState(false)
   const [diffMode, setDiffMode] = useState<'uncommitted' | 'branch'>('uncommitted')
   const [branchList, setBranchList] = useState<FileDiffStat[] | null>(null)
@@ -158,6 +160,23 @@ export function WorktreeCard({ wt, schedule, onSchedulesChange, hidden, onToggle
             <button className="sched-chip" disabled={wt.files.length === 0} onClick={() => setDialogOpen(true)}>
               ⏱ Schedule…
             </button>
+            {prUrl && (
+              <>
+                <button className="sched-chip" title={prUrl} onClick={() => window.open(prUrl)}>
+                  ↗ View PR
+                </button>
+                <button
+                  className="sched-chip"
+                  onClick={() => {
+                    void api.copyPlain(prUrl)
+                    setCopied(true)
+                    setTimeout(() => setCopied(false), 1500)
+                  }}
+                >
+                  {copied ? '✓ Copied' : '⧉ Copy PR link'}
+                </button>
+              </>
+            )}
           </div>
         )}
       </footer>

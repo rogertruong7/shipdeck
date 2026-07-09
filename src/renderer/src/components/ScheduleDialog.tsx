@@ -73,6 +73,24 @@ export function ScheduleDialog({ wt, onClose, onArmed }: { wt: WorktreeInfo; onC
     }
   }
 
+  // "Now" goes through runNow (immediate agent kickstart) instead of arm(),
+  // which rejects past fire times.
+  const armNow = async () => {
+    if (!wt.branch) {
+      setError('Detached worktree — check out a branch first')
+      return
+    }
+    setError('')
+    setBusy(true)
+    try {
+      onArmed(await api.runNow({ worktreePath: wt.path, repo: wt.repo, branch: wt.branch, args: argString }))
+    } catch (e) {
+      setError(`Failed to start run: ${e instanceof Error ? e.message : String(e)}`)
+    } finally {
+      setBusy(false)
+    }
+  }
+
   const armCustom = () => {
     const [h, m] = custom.split(':').map(Number)
     if (Number.isNaN(h) || Number.isNaN(m)) {
@@ -116,6 +134,10 @@ export function ScheduleDialog({ wt, onClose, onArmed }: { wt: WorktreeInfo; onC
 
         <label className="sched-label">When</label>
         <div className="time-presets">
+          <button className="time-card" disabled={busy} onClick={() => void armNow()}>
+            <span className="time-card-when">Now</span>
+            <span className="time-card-at">immediately</span>
+          </button>
           {presets.map(p => (
             <button key={p.label} className="time-card" disabled={busy} onClick={() => void arm(p.at)}>
               <span className="time-card-when">{p.label}</span>

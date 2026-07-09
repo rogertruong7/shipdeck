@@ -103,6 +103,13 @@ export default function App() {
     [filter],
   )
 
+  // newest run with a PR per worktree — runs arrive sorted newest-first
+  const prByPath = useMemo(() => {
+    const m = new Map<string, string>()
+    for (const r of runs) if (r.prUrl && !m.has(r.worktreePath)) m.set(r.worktreePath, r.prUrl)
+    return m
+  }, [runs])
+
   const visible = useMemo(() => visibleGroups.filter(matches), [visibleGroups, matches])
   const hiddenVisible = useMemo(() => hiddenGroups.filter(matches), [hiddenGroups, matches])
 
@@ -140,7 +147,7 @@ export default function App() {
         <Sidebar groups={visible} hiddenGroups={hiddenVisible} selected={selectedKey} onSelect={setSelectedKey} filter={filter} onFilter={setFilter} />
         <main className="main">
           {shown.map(g => (
-            <GroupView key={g.key} group={g} schedules={schedules} onSchedulesChange={setSchedules} hidden={hidden} onToggleHide={toggleHide} />
+            <GroupView key={g.key} group={g} schedules={schedules} onSchedulesChange={setSchedules} hidden={hidden} onToggleHide={toggleHide} prByPath={prByPath} />
           ))}
           {!selectedKey && clean.length > 0 && (
             <details className="clean-section">
@@ -148,7 +155,7 @@ export default function App() {
                 {clean.length} clean branch{clean.length === 1 ? '' : 'es'}
               </summary>
               {clean.map(g => (
-                <GroupView key={g.key} group={g} schedules={schedules} onSchedulesChange={setSchedules} hidden={hidden} onToggleHide={toggleHide} />
+                <GroupView key={g.key} group={g} schedules={schedules} onSchedulesChange={setSchedules} hidden={hidden} onToggleHide={toggleHide} prByPath={prByPath} />
               ))}
             </details>
           )}

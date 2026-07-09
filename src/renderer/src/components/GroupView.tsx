@@ -8,9 +8,10 @@ interface Props {
   onSchedulesChange: (s: Schedule[]) => void
   hidden: HiddenLists
   onToggleHide: (kind: 'repo' | 'worktree', value: string, hide: boolean) => void
+  prByPath: Map<string, string>
 }
 
-export function GroupView({ group, schedules, onSchedulesChange, hidden, onToggleHide }: Props) {
+export function GroupView({ group, schedules, onSchedulesChange, hidden, onToggleHide, prByPath }: Props) {
   return (
     <section className="group">
       <h2 className="group-title">
@@ -27,6 +28,7 @@ export function GroupView({ group, schedules, onSchedulesChange, hidden, onToggl
           onSchedulesChange={onSchedulesChange}
           hidden={hidden}
           onToggleHide={onToggleHide}
+          prUrl={prByPath.get(w.path)}
         />
       ))}
     </section>
