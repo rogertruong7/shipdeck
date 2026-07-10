@@ -18,7 +18,7 @@ button:hover { background: var(--panel2); }
 button.primary { background: #1f6feb; border-color: #1f6feb; }
 button.primary:hover { background: #388bfd; }
 button:disabled { opacity: 0.5; cursor: default; }
-input { font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 5px 10px; }
+input, select { font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 5px 10px; }
 .app { display: flex; flex-direction: column; height: 100vh; }
 .topbar { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px 10px 84px; border-bottom: 1px solid var(--border); -webkit-app-region: drag; background: var(--panel); }
 .topbar button { -webkit-app-region: no-drag; }
