@@ -15,9 +15,13 @@ export function SlackSetup() {
   const [error, setError] = useState('')
 
   const loadChannels = async () => {
-    const r = await api.slackChannels()
-    if (r.ok) setChannels(r.channels ?? [])
-    else setError(r.error ?? 'Could not load channels')
+    try {
+      const r = await api.slackChannels()
+      if (r.ok) setChannels(r.channels ?? [])
+      else setError(r.error ?? 'Could not load channels')
+    } catch {
+      setError('Could not load channels')
+    }
   }
 
   useEffect(() => {
@@ -66,15 +70,23 @@ export function SlackSetup() {
       setStatus({ configured: false })
       setChannels([])
       setDefaultChannel('')
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e))
     } finally {
       setBusy(false)
     }
   }
 
   const pickChannel = async (id: string) => {
+    const prev = defaultChannel
     setDefaultChannel(id)
     const name = channels.find(c => c.id === id)?.name ?? ''
-    await api.setConfig({ slackDefaultChannel: id, slackDefaultChannelName: name })
+    try {
+      await api.setConfig({ slackDefaultChannel: id, slackDefaultChannelName: name })
+    } catch {
+      setDefaultChannel(prev)
+      setError('Could not save default channel')
+    }
   }
 
   if (status === null) return <p className="hint">Loading…</p>
