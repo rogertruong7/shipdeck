@@ -6,6 +6,7 @@ const FRIENDLY: Record<string, string> = {
   invalid_auth: 'Slack token is invalid or revoked — update it in Settings.',
   token_revoked: 'Slack token is invalid or revoked — update it in Settings.',
   account_inactive: 'Slack token is invalid or revoked — update it in Settings.',
+  missing_scope: 'Slack app is missing a scope — add chat:write, channels:read, groups:read under OAuth & Permissions, then reinstall the app.',
   not_in_channel: "The bot isn't in that channel — run /invite @<bot> there first.",
   channel_not_found: "The bot isn't in that channel — run /invite @<bot> there first.",
   time_in_past: 'That time is in the past.',

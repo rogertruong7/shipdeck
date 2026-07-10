@@ -177,13 +177,7 @@ export function registerIpc(): void {
   ipcMain.handle('slack:channels', () => slackChannels(slackToken()))
   ipcMain.handle('slack:schedule', (_e, input: { channelId: string; text: string; postAt: number }) =>
     slackSchedule(slackToken(), input.channelId, input.text, input.postAt))
-  ipcMain.handle('slack:pending', async () => {
-    const token = slackToken()
-    const [p, c] = await Promise.all([slackPending(token), slackChannels(token)])
-    if (!p.ok) return p
-    const names = new Map((c.channels ?? []).map(ch => [ch.id, ch.name]))
-    return { ok: true, messages: (p.messages ?? []).map(m => ({ ...m, channelName: names.get(m.channelId) })) }
-  })
+  ipcMain.handle('slack:pending', () => slackPending(slackToken()))
   ipcMain.handle('slack:cancel', (_e, input: { channelId: string; messageId: string }) =>
     slackCancel(slackToken(), input.channelId, input.messageId))
 }

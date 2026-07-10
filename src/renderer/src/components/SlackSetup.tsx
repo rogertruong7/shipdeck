@@ -34,7 +34,10 @@ export function SlackSetup() {
         setDefaultChannel(c.slackDefaultChannel)
         if (s.configured && !s.error) void loadChannels()
       } catch {
-        if (!stale) setError('Could not load Slack status')
+        if (!stale) {
+          setStatus({ configured: false })
+          setError('Could not load Slack status')
+        }
       }
     })()
     return () => {
@@ -78,6 +81,7 @@ export function SlackSetup() {
   }
 
   const pickChannel = async (id: string) => {
+    setError('')
     const prev = defaultChannel
     setDefaultChannel(id)
     const name = channels.find(c => c.id === id)?.name ?? ''

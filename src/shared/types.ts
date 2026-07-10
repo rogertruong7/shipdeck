@@ -120,7 +120,6 @@ export interface SlackChannel {
 export interface SlackPendingMessage {
   id: string
   channelId: string
-  channelName?: string
   text: string
   postAt: number
 }

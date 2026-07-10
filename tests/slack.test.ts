@@ -64,10 +64,17 @@ describe('slackChannels', () => {
   })
 
   it('surfaces slack errors', async () => {
+    stubFetch({ ok: false, error: 'some_unknown_error' })
+    const r = await slackChannels('xoxb-1')
+    expect(r.ok).toBe(false)
+    expect(r.error).toBe('Slack error: some_unknown_error')
+  })
+
+  it('maps missing_scope to a scopes hint', async () => {
     stubFetch({ ok: false, error: 'missing_scope' })
     const r = await slackChannels('xoxb-1')
     expect(r.ok).toBe(false)
-    expect(r.error).toBe('Slack error: missing_scope')
+    expect(r.error).toContain('missing a scope')
   })
 })
 

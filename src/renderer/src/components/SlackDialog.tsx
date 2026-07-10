@@ -52,7 +52,7 @@ export function SlackDialog({ onClose, onOpenSettings }: { onClose: () => void; 
           void refreshPending()
         }
       } catch {
-        if (!stale) setError('Could not reach Slack')
+        if (!stale) setStatus({ configured: false, error: 'Could not reach Slack' })
       }
     })()
     return () => {
@@ -61,11 +61,12 @@ export function SlackDialog({ onClose, onOpenSettings }: { onClose: () => void; 
   }, [refreshPending])
 
   const schedule = async (at: Date) => {
+    const sent = text.trim()
     if (!channelId) {
       setError('Pick a channel')
       return
     }
-    if (!text.trim()) {
+    if (!sent) {
       setError('Write a message first')
       return
     }
@@ -78,11 +79,11 @@ export function SlackDialog({ onClose, onOpenSettings }: { onClose: () => void; 
     setNotice('')
     setBusy(true)
     try {
-      const r = await api.slackSchedule({ channelId, text: text.trim(), postAt: toPostAt(at) })
+      const r = await api.slackSchedule({ channelId, text: sent, postAt: toPostAt(at) })
       if (!r.ok) {
         setError(r.error ?? 'Slack error')
       } else {
-        setText('')
+        setText(t => (t.trim() === sent ? '' : t))
         setNotice(`Scheduled for ${fmtAt(toPostAt(at))}`)
         void refreshPending()
       }
@@ -189,7 +190,7 @@ export function SlackDialog({ onClose, onOpenSettings }: { onClose: () => void; 
               <div className="slack-pending">
                 {pending.map(m => (
                   <div key={m.id} className="slack-pending-row">
-                    <span className="repo-chip">#{m.channelName ?? m.channelId}</span>
+                    <span className="repo-chip">#{channels.find(c => c.id === m.channelId)?.name ?? m.channelId}</span>
                     <span className="slack-pending-text" title={m.text}>
                       {m.text}
                     </span>
