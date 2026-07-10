@@ -9,9 +9,10 @@ interface Props {
   onRepair: () => void
   onSkills: () => void
   onSettings: () => void
+  onSlack: () => void
 }
 
-export function TopBar({ scanning, health, onRefresh, onRuns, onSummary, onRepair, onSkills, onSettings }: Props) {
+export function TopBar({ scanning, health, onRefresh, onRuns, onSummary, onRepair, onSkills, onSettings, onSlack }: Props) {
   return (
     <header className="topbar">
       <div className="brand">⚓ Shipdeck</div>
@@ -23,6 +24,7 @@ export function TopBar({ scanning, health, onRefresh, onRuns, onSummary, onRepai
           ⚙
         </button>
         <button onClick={onSkills}>Skills</button>
+        <button onClick={onSlack}>Slack</button>
         <button onClick={onRefresh} disabled={scanning}>
           {scanning ? 'Scanning…' : 'Refresh'}
         </button>

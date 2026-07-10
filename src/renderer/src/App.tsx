@@ -11,6 +11,7 @@ import { SummaryDock } from './components/SummaryDock'
 import { SkillsModal } from './components/SkillsModal'
 import { OnboardingModal } from './components/OnboardingModal'
 import { SettingsModal } from './components/SettingsModal'
+import { SlackDialog } from './components/SlackDialog'
 
 const MANAGED_SKILLS = ['split-commit-pr', 'daily-summary']
 
@@ -27,6 +28,7 @@ export default function App() {
   const [scanning, setScanning] = useState(false)
   const [claudeMissing, setClaudeMissing] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [slackOpen, setSlackOpen] = useState(false)
   const [onboarding, setOnboarding] = useState<{ config: ShipdeckConfig; missing: string[] } | null>(null)
   const [hidden, setHidden] = useState<HiddenLists>({ repos: [], worktrees: [] })
 
@@ -136,6 +138,7 @@ export default function App() {
         onRepair={() => void api.repairAgent().then(setHealth)}
         onSkills={() => setSkillsOpen(true)}
         onSettings={() => setSettingsOpen(true)}
+        onSlack={() => setSlackOpen(true)}
       />
       {claudeMissing && (
         <div className="banner">
@@ -166,6 +169,15 @@ export default function App() {
       <SummaryDock startSignal={summarySignal} onOpenRuns={() => setRunsOpen(true)} onDone={refresh} />
       {skillsOpen && <SkillsModal onClose={() => setSkillsOpen(false)} />}
       {settingsOpen && <SettingsModal onClose={() => setSettingsOpen(false)} onSaved={() => void refresh()} />}
+      {slackOpen && (
+        <SlackDialog
+          onClose={() => setSlackOpen(false)}
+          onOpenSettings={() => {
+            setSlackOpen(false)
+            setSettingsOpen(true)
+          }}
+        />
+      )}
       {onboarding && (
         <OnboardingModal
           config={onboarding.config}

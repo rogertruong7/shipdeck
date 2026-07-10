@@ -200,3 +200,25 @@ em.del { color: var(--red); font-style: normal; }
 .slack-steps li {
   margin: 2px 0;
 }
+.slack-pending {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.slack-pending-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.slack-pending-text {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.slack-pending-at {
+  white-space: nowrap;
+  font-size: 12px;
+  opacity: 0.7;
+}
