@@ -3,6 +3,7 @@ import type { ShipdeckConfig } from '../../../shared/types'
 import { renderDailySummarySkill, renderSplitCommitPrSkill } from '../../../shared/skill-templates'
 import { api } from '../api'
 import { FolderList } from './FolderList'
+import { SlackSetup } from './SlackSetup'
 
 interface Props {
   config: ShipdeckConfig
@@ -89,6 +90,21 @@ export function OnboardingModal({ config, missing, onDone }: Props) {
             )}
           </div>
         ))}
+
+        <label className="sched-label">Slack (optional) — schedule messages to post later</label>
+        <ol className="hint slack-steps">
+          <li>
+            Create an app at <code>api.slack.com/apps</code> → "From scratch".
+          </li>
+          <li>
+            OAuth &amp; Permissions → add bot scopes <code>chat:write</code>, <code>channels:read</code>, <code>groups:read</code>.
+          </li>
+          <li>Install to your workspace and copy the Bot User OAuth Token (xoxb-…).</li>
+          <li>
+            In Slack, <code>/invite</code> the bot to channels you want to post to.
+          </li>
+        </ol>
+        <SlackSetup />
 
         {error && <div className="dialog-error">{error}</div>}
         <div className="presets">

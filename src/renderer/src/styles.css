@@ -193,3 +193,10 @@ em.del { color: var(--red); font-style: normal; }
 .slack-token-row input {
   flex: 1;
 }
+.slack-steps {
+  margin: 4px 0 8px 18px;
+  padding: 0;
+}
+.slack-steps li {
+  margin: 2px 0;
+}
