@@ -3,7 +3,7 @@ import { createWriteStream } from 'node:fs'
 import { join } from 'node:path'
 import { lateBySeconds, PR_URL_RE } from '../shared/schedule-logic'
 import { formatStreamEvent } from '../shared/stream-format'
-import type { RunRecord, Schedule, ShipdeckConfig } from '../shared/types'
+import { modelArgs, type RunRecord, type Schedule, type ShipdeckConfig } from '../shared/types'
 
 const RUN_TIMEOUT_MS = 30 * 60 * 1000
 
@@ -42,7 +42,7 @@ function runClaude(
     const resumeArgs = s.resumeSessionId ? ['--resume', s.resumeSessionId] : []
     // stream-json makes progress visible live in the run log; plain -p prints
     // nothing until the very end, which reads as a hang in the Runs drawer
-    const child = spawn(bin, ['-p', prompt, ...resumeArgs, '--dangerously-skip-permissions', '--output-format', 'stream-json', '--verbose'], {
+    const child = spawn(bin, ['-p', prompt, ...resumeArgs, ...modelArgs(ctx.config.model), '--dangerously-skip-permissions', '--output-format', 'stream-json', '--verbose'], {
       cwd: s.worktreePath,
       env: { ...process.env, PATH: ctx.config.shellPath || (process.env.PATH ?? '') },
       detached: true,
