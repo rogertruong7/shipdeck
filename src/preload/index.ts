@@ -40,6 +40,12 @@ const api = {
   skillExists: (name: string) => ipcRenderer.invoke('skill:exists', name),
   readSkill: (name: string) => ipcRenderer.invoke('skill:read', name),
   writeSkill: (name: string, content: string) => ipcRenderer.invoke('skill:write', name, content),
+  slackSetToken: (token: string) => ipcRenderer.invoke('slack:setToken', token),
+  slackStatus: () => ipcRenderer.invoke('slack:status'),
+  slackChannels: () => ipcRenderer.invoke('slack:channels'),
+  slackSchedule: (input: unknown) => ipcRenderer.invoke('slack:schedule', input),
+  slackPending: () => ipcRenderer.invoke('slack:pending'),
+  slackCancel: (input: unknown) => ipcRenderer.invoke('slack:cancel', input),
 }
 
 contextBridge.exposeInMainWorld('shipdeck', api)

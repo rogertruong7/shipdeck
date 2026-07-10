@@ -7,7 +7,7 @@ import { RUNS_DIR, SCHEDULES_FILE } from '../shared/paths'
 import { readJson, writeJsonAtomic } from '../shared/state-files'
 import { groupWorktrees } from '../shared/grouping'
 import { markdownToSlackHtml } from '../shared/slack-format'
-import type { RunRecord, Schedule, ShipdeckConfig } from '../shared/types'
+import type { RunRecord, Schedule, ShipdeckConfig, SlackStatus } from '../shared/types'
 import { branchFiles, fileDiff, scanWorktrees } from './scanner'
 import { annotatePrUrls } from './prs'
 import { armSchedule, cancelSchedule, forceStopSchedule, resumeRun, runNow, type ArmInput, type ResumeInput, type RunNowInput } from './schedules'
@@ -16,6 +16,8 @@ import { loadConfig, saveConfig } from './config'
 import { enableWakeArming } from './wake-setup'
 import { runDailySummary } from './claude-runner'
 import { readSkill, skillExists, writeSkill } from './skills'
+import { decryptSecret, encryptSecret } from './secrets'
+import { slackCancel, slackChannels, slackPending, slackSchedule, slackTest } from './slack'
 
 interface SummaryRunState {
   id: string
@@ -153,4 +155,35 @@ export function registerIpc(): void {
   ipcMain.handle('skill:exists', (_e, name: string) => skillExists(name))
   ipcMain.handle('skill:read', (_e, name: string) => readSkill(name))
   ipcMain.handle('skill:write', (_e, name: string, content: string) => writeSkill(name, content))
+
+  const slackToken = () => decryptSecret(loadConfig().slackTokenEncrypted)
+
+  ipcMain.handle('slack:setToken', async (_e, token: string): Promise<SlackStatus> => {
+    if (!token) {
+      saveConfig({ ...loadConfig(), slackTokenEncrypted: '', slackDefaultChannel: '', slackDefaultChannelName: '' })
+      return { configured: false }
+    }
+    const r = await slackTest(token)
+    if (!r.ok) return { configured: false, error: r.error }
+    saveConfig({ ...loadConfig(), slackTokenEncrypted: encryptSecret(token) })
+    return { configured: true, team: r.team, botName: r.botName }
+  })
+  ipcMain.handle('slack:status', async (): Promise<SlackStatus> => {
+    const token = slackToken()
+    if (!token) return { configured: false }
+    const r = await slackTest(token)
+    return r.ok ? { configured: true, team: r.team, botName: r.botName } : { configured: true, error: r.error }
+  })
+  ipcMain.handle('slack:channels', () => slackChannels(slackToken()))
+  ipcMain.handle('slack:schedule', (_e, input: { channelId: string; text: string; postAt: number }) =>
+    slackSchedule(slackToken(), input.channelId, input.text, input.postAt))
+  ipcMain.handle('slack:pending', async () => {
+    const token = slackToken()
+    const [p, c] = await Promise.all([slackPending(token), slackChannels(token)])
+    if (!p.ok) return p
+    const names = new Map((c.channels ?? []).map(ch => [ch.id, ch.name]))
+    return { ok: true, messages: (p.messages ?? []).map(m => ({ ...m, channelName: names.get(m.channelId) })) }
+  })
+  ipcMain.handle('slack:cancel', (_e, input: { channelId: string; messageId: string }) =>
+    slackCancel(slackToken(), input.channelId, input.messageId))
 }

@@ -1,4 +1,4 @@
-import type { AgentHealth, BranchGroup, FileDiffStat, RunRecord, Schedule, ShipdeckConfig } from '../../shared/types'
+import type { AgentHealth, BranchGroup, FileDiffStat, RunRecord, Schedule, ShipdeckConfig, SlackChannel, SlackPendingMessage, SlackStatus } from '../../shared/types'
 
 export interface SummaryResult {
   ok: boolean
@@ -49,6 +49,12 @@ export interface ShipdeckApi {
   skillExists(name: string): Promise<boolean>
   readSkill(name: string): Promise<string>
   writeSkill(name: string, content: string): Promise<void>
+  slackSetToken(token: string): Promise<SlackStatus>
+  slackStatus(): Promise<SlackStatus>
+  slackChannels(): Promise<{ ok: boolean; channels?: SlackChannel[]; error?: string }>
+  slackSchedule(input: { channelId: string; text: string; postAt: number }): Promise<{ ok: boolean; messageId?: string; error?: string }>
+  slackPending(): Promise<{ ok: boolean; messages?: SlackPendingMessage[]; error?: string }>
+  slackCancel(input: { channelId: string; messageId: string }): Promise<{ ok: boolean; error?: string }>
 }
 
 export const api = (window as unknown as { shipdeck: ShipdeckApi }).shipdeck
