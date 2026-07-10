@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api'
 import { FolderList } from './FolderList'
+import { SlackSetup } from './SlackSetup'
 
 export function SettingsModal({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
   const [folders, setFolders] = useState<string[] | null>(null)
@@ -50,6 +51,8 @@ export function SettingsModal({ onClose, onSaved }: { onClose: () => void; onSav
         {folders ? <FolderList folders={folders} onChange={setFolders} /> : <p className="hint">Loading…</p>}
         <label className="sched-label">Default reviewers (GitHub usernames, comma-separated)</label>
         <input className="chip-input full" value={reviewersText} onChange={e => setReviewersText(e.target.value)} placeholder="e.g. alice, bob" />
+        <label className="sched-label">Slack (for scheduled messages)</label>
+        <SlackSetup />
         {error && <div className="dialog-error">{error}</div>}
         <div className="presets">
           <button className="primary" disabled={busy || !folders} onClick={() => void save()}>

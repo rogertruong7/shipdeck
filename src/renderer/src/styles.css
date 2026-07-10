@@ -183,3 +183,13 @@ em.del { color: var(--red); font-style: normal; }
 
 /* spaced action links under runs and schedules */
 .run-actions { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; }
+
+/* Slack integration */
+.slack-token-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.slack-token-row input {
+  flex: 1;
+}
