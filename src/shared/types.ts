@@ -9,6 +9,11 @@ export interface ShipdeckConfig {
   onboardingDone: boolean
   hiddenRepos: string[]
   hiddenWorktrees: string[]
+  // Slack bot token as a safeStorage-encrypted base64 blob — never plaintext
+  // on disk. Empty string means Slack is not connected.
+  slackTokenEncrypted: string
+  slackDefaultChannel: string
+  slackDefaultChannelName: string
 }
 
 export const DEFAULT_CONFIG: ShipdeckConfig = {
@@ -22,6 +27,9 @@ export const DEFAULT_CONFIG: ShipdeckConfig = {
   onboardingDone: false,
   hiddenRepos: [],
   hiddenWorktrees: [],
+  slackTokenEncrypted: '',
+  slackDefaultChannel: '',
+  slackDefaultChannelName: '',
 }
 
 export type ScheduleStatus = 'armed' | 'running'
@@ -102,3 +110,26 @@ export interface BranchGroup {
 }
 
 export type AgentHealth = 'ok' | 'stale' | 'not_installed'
+
+export interface SlackChannel {
+  id: string
+  name: string
+  isPrivate: boolean
+}
+
+export interface SlackPendingMessage {
+  id: string
+  channelId: string
+  channelName?: string
+  text: string
+  postAt: number
+}
+
+// configured=true + error set means a token is stored but auth.test failed
+// (revoked token, network down) — the UI offers a re-connect in that state.
+export interface SlackStatus {
+  configured: boolean
+  team?: string
+  botName?: string
+  error?: string
+}
