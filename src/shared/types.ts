@@ -2,6 +2,9 @@ export interface ShipdeckConfig {
   scanRoots: string[]
   excludeDirs: string[]
   claudePath: string
+  // Claude model passed as --model on every run; 'default' omits the flag
+  // so runs use whatever the user's Claude Code setup picks.
+  model: string
   summaryDir: string
   reviewers: string[]
   wakeArmingEnabled: boolean
@@ -15,6 +18,7 @@ export const DEFAULT_CONFIG: ShipdeckConfig = {
   scanRoots: ['~/coding', '~/conductor/workspaces'],
   excludeDirs: ['node_modules', '.Trash', 'archived-contexts', 'Library'],
   claudePath: 'auto',
+  model: 'default',
   summaryDir: '~/coding',
   reviewers: [],
   wakeArmingEnabled: false,
@@ -22,6 +26,18 @@ export const DEFAULT_CONFIG: ShipdeckConfig = {
   onboardingDone: false,
   hiddenRepos: [],
   hiddenWorktrees: [],
+}
+
+export const MODEL_OPTIONS: ReadonlyArray<{ value: string; label: string }> = [
+  { value: 'default', label: 'Default (Claude Code setting)' },
+  { value: 'claude-opus-4-8', label: 'Opus 4.8' },
+  { value: 'claude-opus-4-5', label: 'Opus 4.5' },
+  { value: 'claude-sonnet-5', label: 'Sonnet 5' },
+  { value: 'claude-haiku-4-5', label: 'Haiku 4.5' },
+]
+
+export function modelArgs(model: string | undefined): string[] {
+  return model && model !== 'default' ? ['--model', model] : []
 }
 
 export type ScheduleStatus = 'armed' | 'running'

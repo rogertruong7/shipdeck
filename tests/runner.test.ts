@@ -66,6 +66,16 @@ describe('executeSchedule', () => {
     expect(log).toContain('args=-p /split-commit-pr v,d --dangerously-skip-permissions')
   })
 
+  it('passes --model when config.model is set to a specific model', async () => {
+    const shimPath = await makeShim(root, 'claude-model', 'echo "args=$*"; echo "https://github.com/acme/alpha/pull/50"')
+    const s = sch(dirtyWt)
+    const config = { ...cfg(shimPath), model: 'claude-opus-4-5' }
+    const rec = await executeSchedule(s, { runsDir, config, now: () => new Date() })
+    expect(rec.status).toBe('done')
+    const log = readFileSync(join(runsDir, `${s.id}.log`), 'utf8')
+    expect(log).toContain('--model claude-opus-4-5')
+  })
+
   it('marks needs_attention when claude exits 0 with no PR URL', async () => {
     const shimPath = await makeShim(root, 'claude-blocked', 'echo "Secret scan found AKIA... stopping."')
     const rec = await executeSchedule(sch(dirtyWt), { runsDir, config: cfg(shimPath), now: () => new Date() })
