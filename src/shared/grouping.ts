@@ -30,3 +30,38 @@ export function groupWorktrees(worktrees: WorktreeInfo[]): BranchGroup[] {
     return b.lastActivity.localeCompare(a.lastActivity)
   })
 }
+
+export interface SidebarSection {
+  // ENG-<number> ticket header, or null for a standalone branch
+  ticket: string | null
+  groups: BranchGroup[]
+}
+
+function ticketOf(key: string): string | null {
+  const m = key.match(/^(eng-\d+)(?:-|$)/i)
+  return m ? m[1].toUpperCase() : null
+}
+
+export interface SidebarLayout {
+  changed: SidebarSection[]
+  unchanged: SidebarSection[]
+}
+
+export function sidebarLayout(groups: BranchGroup[]): SidebarLayout {
+  return {
+    changed: sidebarSections(groups.filter(g => g.dirty)),
+    unchanged: sidebarSections(groups.filter(g => !g.dirty)),
+  }
+}
+
+export function sidebarSections(groups: BranchGroup[]): SidebarSection[] {
+  const sorted = [...groups].sort((a, b) => a.key.toLowerCase().localeCompare(b.key.toLowerCase()))
+  const sections: SidebarSection[] = []
+  for (const g of sorted) {
+    const ticket = ticketOf(g.key)
+    const last = sections.at(-1)
+    if (ticket && last && last.ticket === ticket) last.groups.push(g)
+    else sections.push({ ticket, groups: [g] })
+  }
+  return sections
+}

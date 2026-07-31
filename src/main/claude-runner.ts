@@ -1,7 +1,7 @@
 import { spawn } from 'node:child_process'
 import { expandTilde } from '../shared/paths'
 import { formatStreamEvent } from '../shared/stream-format'
-import type { ShipdeckConfig } from '../shared/types'
+import { modelArgs, type ShipdeckConfig } from '../shared/types'
 
 const SUMMARY_TIMEOUT_MS = 10 * 60 * 1000
 
@@ -13,7 +13,7 @@ export function runDailySummary(
   const bin = config.claudePath === 'auto' ? 'claude' : config.claudePath
   // stream-json surfaces progress live; the final result block carries the
   // actual summary text, which we accumulate for the rendered output + copy.
-  const child = spawn(bin, ['-p', '/daily-summary', '--dangerously-skip-permissions', '--output-format', 'stream-json', '--verbose'], {
+  const child = spawn(bin, ['-p', '/daily-summary', ...modelArgs(config.model), '--dangerously-skip-permissions', '--output-format', 'stream-json', '--verbose'], {
     cwd: cwdOverride ?? expandTilde(config.summaryDir),
     env: { ...process.env, PATH: config.shellPath || (process.env.PATH ?? '') },
     // claude -p reads piped stdin until EOF; an open pipe hangs it forever

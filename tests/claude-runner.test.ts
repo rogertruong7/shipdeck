@@ -13,11 +13,11 @@ function makeShim(script: string): string {
   return p
 }
 
-function collect(claudePath: string): Promise<{ chunks: string[]; done: { ok: boolean; text: string } }> {
+function collect(claudePath: string, model?: string): Promise<{ chunks: string[]; done: { ok: boolean; text: string } }> {
   return new Promise(resolve => {
     const chunks: string[] = []
     runDailySummary(
-      { ...DEFAULT_CONFIG, claudePath, shellPath: process.env.PATH ?? '' },
+      { ...DEFAULT_CONFIG, claudePath, shellPath: process.env.PATH ?? '', ...(model ? { model } : {}) },
       (channel, payload) => {
         if (channel === 'summary:chunk') chunks.push(payload as string)
         else resolve({ chunks, done: payload as { ok: boolean; text: string } })
@@ -34,6 +34,14 @@ describe('runDailySummary', () => {
     expect(done.ok).toBe(true)
     expect(done.text).toContain('What I finished')
     expect(chunks.join('')).toBe(done.text)
+  })
+
+  it('passes --model when config.model is set, and omits it on default', async () => {
+    const shim = makeShim('echo "args=$*"')
+    const pinned = await collect(shim, 'claude-opus-4-5')
+    expect(pinned.done.text).toContain('--model claude-opus-4-5')
+    const unpinned = await collect(shim)
+    expect(unpinned.done.text).not.toContain('--model')
   })
 
   it('reports not-ok on nonzero exit', async () => {

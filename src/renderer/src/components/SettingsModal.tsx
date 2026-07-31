@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { MODEL_OPTIONS } from '../../../shared/types'
 import { api } from '../api'
 import { FolderList } from './FolderList'
 import { SlackSetup } from './SlackSetup'
@@ -6,6 +7,7 @@ import { SlackSetup } from './SlackSetup'
 export function SettingsModal({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
   const [folders, setFolders] = useState<string[] | null>(null)
   const [reviewersText, setReviewersText] = useState('')
+  const [model, setModel] = useState('default')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
 
@@ -17,6 +19,7 @@ export function SettingsModal({ onClose, onSaved }: { onClose: () => void; onSav
         if (stale) return
         setFolders(c.scanRoots)
         setReviewersText(c.reviewers.join(', '))
+        setModel(c.model)
       })
       .catch(() => setError('Could not load config'))
     return () => {
@@ -34,7 +37,7 @@ export function SettingsModal({ onClose, onSaved }: { onClose: () => void; onSav
     setBusy(true)
     try {
       const reviewers = [...new Set(reviewersText.split(',').map(s => s.trim()).filter(Boolean))]
-      await api.setConfig({ scanRoots: folders, reviewers })
+      await api.setConfig({ scanRoots: folders, reviewers, model })
       onSaved()
       onClose()
     } catch (e) {
@@ -51,6 +54,15 @@ export function SettingsModal({ onClose, onSaved }: { onClose: () => void; onSav
         {folders ? <FolderList folders={folders} onChange={setFolders} /> : <p className="hint">Loading…</p>}
         <label className="sched-label">Default reviewers (GitHub usernames, comma-separated)</label>
         <input className="chip-input full" value={reviewersText} onChange={e => setReviewersText(e.target.value)} placeholder="e.g. alice, bob" />
+        <label className="sched-label">Claude model for runs</label>
+        <select className="chip-input full" value={model} onChange={e => setModel(e.target.value)}>
+          {MODEL_OPTIONS.map(o => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+          {!MODEL_OPTIONS.some(o => o.value === model) && <option value={model}>{model}</option>}
+        </select>
         <label className="sched-label">Slack (for scheduled messages)</label>
         <SlackSetup />
         {error && <div className="dialog-error">{error}</div>}
