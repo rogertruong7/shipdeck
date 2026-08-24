@@ -167,6 +167,17 @@ em.del { color: var(--red); font-style: normal; }
 .onboard-skill-head { display: flex; align-items: center; gap: 8px; font-size: 13px; }
 .skill-editor.short { height: 180px; }
 
+/* Setup wizard */
+.wizard-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.wizard-dots { display: flex; align-items: center; gap: 8px; }
+.wizard-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--border); transition: background 0.15s; }
+.wizard-dot.done { background: var(--accent); }
+.wizard-dot.active { background: var(--accent); box-shadow: 0 0 0 3px #1f6feb33; }
+.wizard-count { font-size: 12px; color: var(--muted); }
+.wizard-body { min-height: 210px; display: flex; flex-direction: column; gap: 10px; }
+.wizard-footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.wizard-footer-right { display: flex; gap: 8px; margin-left: auto; }
+
 /* Hidden worktrees */
 .side-section { margin-top: 14px; padding: 4px 10px; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; }
 .side-ticket { margin-top: 8px; padding: 2px 10px; font-size: 11px; color: var(--muted); letter-spacing: 0.4px; }
