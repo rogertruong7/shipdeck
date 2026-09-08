@@ -112,6 +112,8 @@ export default function App() {
     return m
   }, [runs])
 
+  const armedCount = useMemo(() => schedules.filter(s => s.status === 'armed').length, [schedules])
+
   const visible = useMemo(() => visibleGroups.filter(matches), [visibleGroups, matches])
   const hiddenVisible = useMemo(() => hiddenGroups.filter(matches), [hiddenGroups, matches])
 
@@ -140,6 +142,13 @@ export default function App() {
         onSettings={() => setSettingsOpen(true)}
         onSlack={() => setSlackOpen(true)}
       />
+      {health !== 'ok' && armedCount > 0 && (
+        <div className="banner">
+          Scheduler agent is {health === 'not_installed' ? 'not installed' : 'not ticking'} — {armedCount} armed timer
+          {armedCount === 1 ? '' : 's'} will not fire. Shipdeck retries while it is open; if the dot stays red, log out and back in
+          (or restart) to rebuild the launchd session.
+        </div>
+      )}
       {claudeMissing && (
         <div className="banner">
           claude CLI not found on your shell PATH — scheduled runs and summaries will fail. Install Claude Code or set
@@ -150,7 +159,16 @@ export default function App() {
         <Sidebar groups={visible} hiddenGroups={hiddenVisible} selected={selectedKey} onSelect={setSelectedKey} filter={filter} onFilter={setFilter} />
         <main className="main">
           {shown.map(g => (
-            <GroupView key={g.key} group={g} schedules={schedules} onSchedulesChange={setSchedules} hidden={hidden} onToggleHide={toggleHide} prByPath={prByPath} />
+            <GroupView
+              key={g.key}
+              group={g}
+              schedules={schedules}
+              onSchedulesChange={setSchedules}
+              hidden={hidden}
+              onToggleHide={toggleHide}
+              prByPath={prByPath}
+              health={health}
+            />
           ))}
           {!selectedKey && clean.length > 0 && (
             <details className="clean-section">
@@ -158,7 +176,16 @@ export default function App() {
                 {clean.length} clean branch{clean.length === 1 ? '' : 'es'}
               </summary>
               {clean.map(g => (
-                <GroupView key={g.key} group={g} schedules={schedules} onSchedulesChange={setSchedules} hidden={hidden} onToggleHide={toggleHide} prByPath={prByPath} />
+                <GroupView
+                  key={g.key}
+                  group={g}
+                  schedules={schedules}
+                  onSchedulesChange={setSchedules}
+                  hidden={hidden}
+                  onToggleHide={toggleHide}
+                  prByPath={prByPath}
+                  health={health}
+                />
               ))}
             </details>
           )}

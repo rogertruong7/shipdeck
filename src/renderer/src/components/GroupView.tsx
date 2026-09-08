@@ -1,4 +1,4 @@
-import type { BranchGroup, Schedule } from '../../../shared/types'
+import type { AgentHealth, BranchGroup, Schedule } from '../../../shared/types'
 import type { HiddenLists } from '../../../shared/hidden'
 import { WorktreeCard } from './WorktreeCard'
 
@@ -9,9 +9,10 @@ interface Props {
   hidden: HiddenLists
   onToggleHide: (kind: 'repo' | 'worktree', value: string, hide: boolean) => void
   prByPath: Map<string, string>
+  health: AgentHealth
 }
 
-export function GroupView({ group, schedules, onSchedulesChange, hidden, onToggleHide, prByPath }: Props) {
+export function GroupView({ group, schedules, onSchedulesChange, hidden, onToggleHide, prByPath, health }: Props) {
   return (
     <section className="group">
       <h2 className="group-title">
@@ -29,6 +30,7 @@ export function GroupView({ group, schedules, onSchedulesChange, hidden, onToggl
           hidden={hidden}
           onToggleHide={onToggleHide}
           prUrl={w.prUrl ?? prByPath.get(w.path)}
+          health={health}
         />
       ))}
     </section>

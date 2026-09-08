@@ -2,7 +2,7 @@ import { app, BrowserWindow, shell } from 'electron'
 import { join } from 'node:path'
 import { registerIpc } from './ipc'
 import { ensureResolvedToolPaths } from './config'
-import { installAgentIfNeeded } from './agent-installer'
+import { installAgentIfNeeded, pokeAgentIfStale } from './agent-installer'
 
 function createWindow(): void {
   const win = new BrowserWindow({
@@ -30,6 +30,9 @@ void app.whenReady().then(async () => {
   } catch (e) {
     console.error('startup setup failed:', e)
   }
+  // launchd can stop firing the agent's interval without ever failing loudly;
+  // nudge it whenever it has gone quiet while the Mac was awake.
+  setInterval(() => void pokeAgentIfStale().catch(e => console.error('agent poke failed:', e)), 60_000)
   createWindow()
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
