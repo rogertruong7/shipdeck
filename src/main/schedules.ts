@@ -4,6 +4,7 @@ import { randomBytes } from 'node:crypto'
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { RUNS_DIR, SCHEDULES_FILE } from '../shared/paths'
+import { kickstartAgent } from './agent-installer'
 import { readJson, writeJsonAtomic } from '../shared/state-files'
 import { armReplacing, classifyInterrupted } from '../shared/schedule-logic'
 import type { RunRecord, Schedule, ShipdeckConfig } from '../shared/types'
@@ -80,15 +81,6 @@ export async function runNow(input: RunNowInput): Promise<Schedule[]> {
   writeJsonAtomic(SCHEDULES_FILE, armReplacing(schedules, next))
   await kickstartAgent()
   return readJson<Schedule[]>(SCHEDULES_FILE, [])
-}
-
-async function kickstartAgent(): Promise<void> {
-  try {
-    const uid = process.getuid?.() ?? 501
-    await exec('launchctl', ['kickstart', `gui/${uid}/com.roger.shipdeck.agent`])
-  } catch {
-    // agent will still pick it up on its next 60s tick
-  }
 }
 
 export interface ResumeInput {

@@ -11,7 +11,7 @@ import type { RunRecord, Schedule, ShipdeckConfig, SlackStatus } from '../shared
 import { branchFiles, fileDiff, scanWorktrees } from './scanner'
 import { annotatePrUrls } from './prs'
 import { armSchedule, cancelSchedule, forceStopSchedule, resumeRun, runNow, type ArmInput, type ResumeInput, type RunNowInput } from './schedules'
-import { agentHealth, installAgent } from './agent-installer'
+import { agentHealth, installAgent, kickstartAgent } from './agent-installer'
 import { loadConfig, saveConfig } from './config'
 import { enableWakeArming } from './wake-setup'
 import { runDailySummary } from './claude-runner'
@@ -79,6 +79,9 @@ export function registerIpc(): void {
   ipcMain.handle('agent:health', () => agentHealth())
   ipcMain.handle('agent:repair', async () => {
     await installAgent()
+    // bootstrap alone can come back with its non-demand spawns still pended, so
+    // ask for the one spawn launchd always honours and prove the agent can tick.
+    await kickstartAgent()
     return agentHealth()
   })
   ipcMain.handle('wake:enable', async () => {
