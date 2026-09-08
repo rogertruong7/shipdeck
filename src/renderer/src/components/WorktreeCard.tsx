@@ -1,5 +1,5 @@
 import { useEffect, useState, type MouseEvent } from 'react'
-import type { FileDiffStat, Schedule, WorktreeInfo } from '../../../shared/types'
+import type { AgentHealth, FileDiffStat, Schedule, WorktreeInfo } from '../../../shared/types'
 import type { HiddenLists } from '../../../shared/hidden'
 import { api } from '../api'
 import { DiffView } from './DiffView'
@@ -12,9 +12,10 @@ interface Props {
   hidden: HiddenLists
   onToggleHide: (kind: 'repo' | 'worktree', value: string, hide: boolean) => void
   prUrl?: string
+  health: AgentHealth
 }
 
-export function WorktreeCard({ wt, schedule, onSchedulesChange, hidden, onToggleHide, prUrl }: Props) {
+export function WorktreeCard({ wt, schedule, onSchedulesChange, hidden, onToggleHide, prUrl, health }: Props) {
   const [openFile, setOpenFile] = useState<string | null>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -155,6 +156,12 @@ export function WorktreeCard({ wt, schedule, onSchedulesChange, hidden, onToggle
         )}
       </ul>
       <footer className="card-foot">
+        {schedule?.status === 'armed' && health !== 'ok' && (
+          <div className="card-warn">
+            ⚠ Scheduler agent is {health === 'not_installed' ? 'not installed' : 'not running'} — this timer will not fire. Click the
+            status dot in the top bar to repair it.
+          </div>
+        )}
         {schedule ? (
           <div className="foot-actions">
           <span className="sched-chip armed">
